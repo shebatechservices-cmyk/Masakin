@@ -17,7 +17,7 @@ export default function AdminSidebar() {
     { href: '/admin/products', label: 'প্রোডাক্ট ও ট্রেন্ডিং', icon: Package },
     { href: '/admin/expenses', label: 'দোকানের খরচ (Expense)', icon: ReceiptText },
     { href: '/admin/ledger', label: 'একাউন্ট-লেজার (হিসাব)', icon: BookOpen, adminOnly: true },
-    { href: '/admin/offers', label: 'অফার ও কুপন', icon: Tag, adminOnly: true }
+    { href: '/admin/offers', label: 'শপ সেটিংস ও অফার', icon: Tag, adminOnly: true }
   ];
 
   return (
