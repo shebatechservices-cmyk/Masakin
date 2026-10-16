@@ -3,7 +3,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, ShoppingBag, Package, Tag, ArrowLeft, Barcode, ReceiptText, BookOpen } from 'lucide-react';
+import { LayoutDashboard, ShoppingBag, Package, Tag, ArrowLeft, Barcode, ReceiptText, BookOpen, Settings } from 'lucide-react';
 import { useAdminAuth } from '@/context/AdminAuthContext';
 
 export default function AdminSidebar() {
@@ -16,8 +16,8 @@ export default function AdminSidebar() {
     { href: '/admin/orders', label: 'অনলাইন অর্ডার সমূহ', icon: ShoppingBag },
     { href: '/admin/products', label: 'প্রোডাক্ট ও ট্রেন্ডিং', icon: Package },
     { href: '/admin/expenses', label: 'দোকানের খরচ (Expense)', icon: ReceiptText },
-    { href: '/admin/ledger', label: 'একাউন্ট-লেজার (হিসাব)', icon: BookOpen, adminOnly: true },
-    { href: '/admin/offers', label: 'শপ সেটিংস ও অফার', icon: Tag, adminOnly: true }
+    { href: '/admin/ledger', label: 'একাউন্ট-লেজার (হিসাব)', icon: BookOpen },
+    { href: '/admin/offers', label: 'শপ সেটিংস ও অফার', icon: Settings }
   ];
 
   return (
@@ -28,7 +28,6 @@ export default function AdminSidebar() {
         </span>
 
         {links.map((link) => {
-          if (link.adminOnly && user?.role !== 'admin') return null;
           const Icon = link.icon;
           const isActive = link.exact ? pathname === link.href : pathname.startsWith(link.href);
 
