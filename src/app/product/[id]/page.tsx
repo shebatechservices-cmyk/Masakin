@@ -4,7 +4,7 @@ import React, { use } from 'react';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { Star } from 'lucide-react';
-import { PRODUCTS, getProductById } from '@/data/products';
+import { useShopData } from '@/context/ShopDataContext';
 import ProductCard from '@/components/product/ProductCard';
 import ProductGallery from '@/components/product/ProductGallery';
 import ProductActions from '@/components/product/ProductActions';
@@ -16,14 +16,17 @@ interface ProductPageProps {
 
 export default function ProductDetailPage({ params }: ProductPageProps) {
   const { id } = use(params);
-  const product = getProductById(id);
+  const { products } = useShopData();
+
+  // Find product dynamically from live store
+  const product = products.find((p) => p.id === id);
 
   if (!product) {
     notFound();
   }
 
   // Related products
-  const relatedProducts = PRODUCTS.filter(
+  const relatedProducts = products.filter(
     (p) => p.category === product.category && p.id !== product.id
   ).slice(0, 4);
 
@@ -44,12 +47,13 @@ export default function ProductDetailPage({ params }: ProductPageProps) {
 
         {/* Product Details Grid */}
         <div className="bg-white rounded-3xl p-6 sm:p-8 lg:p-10 border border-slate-200/80 shadow-xs grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12">
-          {/* Images */}
+          {/* Images & Video Gallery */}
           <div className="lg:col-span-6">
             <ProductGallery
               images={product.images}
               productName={product.name}
               discountPercent={product.discountPercent}
+              videoUrl={product.videoUrl}
             />
           </div>
 
@@ -75,7 +79,7 @@ export default function ProductDetailPage({ params }: ProductPageProps) {
                       <Star
                         key={i}
                         className={`w-4 h-4 ${
-                          i < Math.floor(product.rating)
+                          i < Math.floor(product.rating || 5)
                             ? 'fill-amber-400 text-amber-400'
                             : 'text-slate-200'
                         }`}
@@ -83,7 +87,7 @@ export default function ProductDetailPage({ params }: ProductPageProps) {
                     ))}
                   </div>
                   <span className="text-xs font-bold text-slate-700">
-                    {product.rating} ({product.reviewsCount} কাস্টমার রিভিউ)
+                    {product.rating || 5} ({product.reviewsCount || 10} কাস্টমার রিভিউ)
                   </span>
                 </div>
 

@@ -23,6 +23,7 @@ export interface Product {
   rating: number;
   reviewsCount: number;
   images: string[];
+  videoUrl?: string;
   featured?: boolean;
   bestseller?: boolean;
   inStock: boolean;
