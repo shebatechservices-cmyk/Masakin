@@ -2,29 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { CartItem, Product } from '@/types';
-
-interface CartContextType {
-  items: CartItem[];
-  totalItems: number;
-  subtotal: number;
-  deliveryFee: number;
-  discount: number;
-  total: number;
-  couponCode: string;
-  couponDiscountPercent: number;
-  isCartOpen: boolean;
-  deliveryArea: 'inside' | 'outside';
-  setDeliveryArea: (area: 'inside' | 'outside') => void;
-  openCart: () => void;
-  closeCart: () => void;
-  toggleCart: () => void;
-  addToCart: (product: Product, selectedSize?: string, selectedColor?: string, quantity?: number) => void;
-  removeFromCart: (itemId: string) => void;
-  updateQuantity: (itemId: string, quantity: number) => void;
-  clearCart: () => void;
-  applyCoupon: (code: string) => { success: boolean; message: string };
-  removeCoupon: () => void;
-}
+import { CartContextType } from '@/types/cart';
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
@@ -41,9 +19,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setIsMounted(true);
     try {
       const saved = localStorage.getItem('masakin_cart');
-      if (saved) {
-        setItems(JSON.parse(saved));
-      }
+      if (saved) setItems(JSON.parse(saved));
       const savedCoupon = localStorage.getItem('masakin_coupon');
       if (savedCoupon) {
         const parsed = JSON.parse(savedCoupon);
@@ -68,7 +44,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const openCart = () => setIsCartOpen(true);
   const closeCart = () => setIsCartOpen(false);
-  const toggleCart = () => setIsCartOpen(prev => !prev);
+  const toggleCart = () => setIsCartOpen((prev) => !prev);
 
   const addToCart = (
     product: Product,
@@ -80,33 +56,24 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const color = selectedColor || product.colors[0]?.name || 'Standard';
     const itemId = `${product.id}-${size}-${color}`;
 
-    setItems(prevItems => {
-      const existing = prevItems.find(item => item.id === itemId);
+    setItems((prevItems) => {
+      const existing = prevItems.find((item) => item.id === itemId);
       if (existing) {
-        return prevItems.map(item =>
-          item.id === itemId
-            ? { ...item, quantity: item.quantity + quantity }
-            : item
+        return prevItems.map((item) =>
+          item.id === itemId ? { ...item, quantity: item.quantity + quantity } : item
         );
-      } else {
-        return [
-          ...prevItems,
-          {
-            id: itemId,
-            product,
-            selectedSize: size,
-            selectedColor: color,
-            quantity
-          }
-        ];
       }
+      return [
+        ...prevItems,
+        { id: itemId, product, selectedSize: size, selectedColor: color, quantity }
+      ];
     });
 
     setIsCartOpen(true);
   };
 
   const removeFromCart = (itemId: string) => {
-    setItems(prev => prev.filter(item => item.id !== itemId));
+    setItems((prev) => prev.filter((item) => item.id !== itemId));
   };
 
   const updateQuantity = (itemId: string, quantity: number) => {
@@ -114,8 +81,8 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
       removeFromCart(itemId);
       return;
     }
-    setItems(prev =>
-      prev.map(item => (item.id === itemId ? { ...item, quantity } : item))
+    setItems((prev) =>
+      prev.map((item) => (item.id === itemId ? { ...item, quantity } : item))
     );
   };
 
@@ -135,10 +102,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setCouponCode('MASAKIN10');
       setCouponDiscountPercent(10);
       try {
-        localStorage.setItem(
-          'masakin_coupon',
-          JSON.stringify({ code: 'MASAKIN10', percent: 10 })
-        );
+        localStorage.setItem('masakin_coupon', JSON.stringify({ code: 'MASAKIN10', percent: 10 }));
       } catch {}
       return { success: true, message: 'অভিনন্দন! ১০% ডিসকাউন্ট যোগ করা হয়েছে।' };
     }
@@ -146,10 +110,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setCouponCode('EID20');
       setCouponDiscountPercent(20);
       try {
-        localStorage.setItem(
-          'masakin_coupon',
-          JSON.stringify({ code: 'EID20', percent: 20 })
-        );
+        localStorage.setItem('masakin_coupon', JSON.stringify({ code: 'EID20', percent: 20 }));
       } catch {}
       return { success: true, message: 'অভিনন্দন! ২০% ঈদ অফার ডিসকাউন্ট যুক্ত হয়েছে।' };
     }
@@ -165,12 +126,8 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const totalItems = items.reduce((sum, item) => sum + item.quantity, 0);
-  const subtotal = items.reduce(
-    (sum, item) => sum + item.product.price * item.quantity,
-    0
-  );
+  const subtotal = items.reduce((sum, item) => sum + item.product.price * item.quantity, 0);
   const discount = Math.round((subtotal * couponDiscountPercent) / 100);
-  // Free delivery for orders >= 2500 BDT or default rate
   const deliveryFee = subtotal >= 2500 || items.length === 0 ? 0 : deliveryArea === 'inside' ? 60 : 120;
   const total = Math.max(0, subtotal - discount + deliveryFee);
 
