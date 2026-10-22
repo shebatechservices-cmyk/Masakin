@@ -1,9 +1,28 @@
 'use client';
 
 import React, { useState } from 'react';
-import { X, Save, Image as ImageIcon, Video, Upload, Link as LinkIcon, Trash2 } from 'lucide-react';
+import { X, Save, Image as ImageIcon, Video, Upload, Trash2, CheckCircle2 } from 'lucide-react';
 import { Product, ProductCategory } from '@/types';
 import ProductHighlightToggles from './ProductHighlightToggles';
+
+// Auto-convert Google Drive shareable link to direct image stream URL
+function convertGoogleDriveLink(url: string): string {
+  if (!url) return '';
+  const trimmed = url.trim();
+  
+  // Patterns like: https://drive.google.com/file/d/FILE_ID/view... or id=FILE_ID
+  const matchFileD = trimmed.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
+  if (matchFileD && matchFileD[1]) {
+    return `https://lh3.googleusercontent.com/d/${matchFileD[1]}`;
+  }
+
+  const matchId = trimmed.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+  if (matchId && matchId[1]) {
+    return `https://lh3.googleusercontent.com/d/${matchId[1]}`;
+  }
+
+  return trimmed;
+}
 
 interface ProductFormModalProps {
   product?: Product | null;
@@ -27,9 +46,11 @@ export default function ProductFormModal({
   const [stockCount, setStockCount] = useState(product?.stockCount || 20);
   
   // 3 Images state
-  const [image1, setImage1] = useState(product?.images?.[0] || '');
-  const [image2, setImage2] = useState(product?.images?.[1] || '');
-  const [image3, setImage3] = useState(product?.images?.[2] || '');
+  const [images, setImages] = useState<string[]>([
+    product?.images?.[0] || '',
+    product?.images?.[1] || '',
+    product?.images?.[2] || ''
+  ]);
 
   // Short Video state
   const [videoUrl, setVideoUrl] = useState(product?.videoUrl || '');
@@ -38,36 +59,80 @@ export default function ProductFormModal({
   const [featured, setFeatured] = useState(product?.featured || false);
   const [bestseller, setBestseller] = useState(product?.bestseller || false);
 
-  // File upload helper for local preview / base64
-  const handleFileUpload = (
-    e: React.ChangeEvent<HTMLInputElement>,
-    setter: (val: string) => void,
-    maxSizeMB = 5
-  ) => {
+  // Multi-image file selection (select up to 3 images at once)
+  const handleMultipleFiles = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    const fileList = Array.from(files).slice(0, 3);
+    const newImages = [...images];
+
+    fileList.forEach((file, idx) => {
+      if (file.size > 5 * 1024 * 1024) {
+        alert(`${file.name} ফাইলটি ৫MB এর বেশি, তাই বাদ দেওয়া হলো।`);
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const res = event.target?.result as string;
+        if (res) {
+          setImages((prev) => {
+            const copy = [...prev];
+            copy[idx] = res;
+            return copy;
+          });
+        }
+      };
+      reader.readAsDataURL(file);
+    });
+  };
+
+  // Video file upload handler
+  const handleVideoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (file.size > maxSizeMB * 1024 * 1024) {
-      alert(`ফাইলের সাইজ সর্বোচ্চ ${maxSizeMB}MB হতে পারে!`);
+    if (file.size > 15 * 1024 * 1024) {
+      alert('ভিডিওর সাইজ সর্বোচ্চ ১৫MB হতে পারে!');
       return;
     }
 
     const reader = new FileReader();
     reader.onload = (event) => {
       const res = event.target?.result as string;
-      if (res) setter(res);
+      if (res) setVideoUrl(res);
     };
     reader.readAsDataURL(file);
+  };
+
+  const handleImageChange = (index: number, val: string) => {
+    const converted = convertGoogleDriveLink(val);
+    setImages((prev) => {
+      const updated = [...prev];
+      updated[index] = converted;
+      return updated;
+    });
+  };
+
+  const handleRemoveImage = (index: number) => {
+    setImages((prev) => {
+      const updated = [...prev];
+      updated[index] = '';
+      return updated;
+    });
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const discountPercent = Math.max(0, Math.round(((originalPrice - price) / originalPrice) * 100));
 
-    // Filter valid images (at least 1 is required)
-    const activeImages = [image1, image2, image3].filter((img) => img.trim() !== '');
-    const finalImages = activeImages.length > 0 
-      ? activeImages 
+    // Filter valid images (at least 1 image is kept)
+    const validImages = images
+      .map((img) => convertGoogleDriveLink(img))
+      .filter((img) => img.trim() !== '');
+
+    const finalImages = validImages.length > 0 
+      ? validImages 
       : ['https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?auto=format&fit=crop&w=800&q=80'];
 
     onSave({
@@ -81,7 +146,7 @@ export default function ProductFormModal({
       stockCount: Number(stockCount),
       inStock: Number(stockCount) > 0,
       images: finalImages,
-      videoUrl: videoUrl.trim() || undefined,
+      videoUrl: convertGoogleDriveLink(videoUrl).trim() || undefined,
       sizes: sizes.split(',').map((s) => s.trim()).filter(Boolean),
       featured,
       bestseller
@@ -167,123 +232,66 @@ export default function ProductFormModal({
             </div>
           </div>
 
-          {/* 3 Images Upload / URL Section */}
+          {/* 3 IMAGES AT ONCE - Upload & Google Drive Auto-convert */}
           <div className="p-3.5 bg-rose-50/40 rounded-2xl border border-rose-200/70 space-y-3">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
               <span className="font-extrabold text-xs text-rose-950 flex items-center gap-1.5">
                 <ImageIcon className="w-4 h-4 text-rose-600" />
-                <span>৩টি প্রোডাক্ট ছবি (ফাইল আপলোড বা লিঙ্ক)</span>
+                <span>৩টি ছবি (এক সাথে ৩টি সিলেক্ট করুন অথবা ড্রাইভ লিঙ্ক দিন)</span>
               </span>
-              <span className="text-[10px] text-zinc-500">৩টি অ্যাঙ্গেলের ছবি দিন</span>
+              
+              {/* 1-Click 3-Images Batch Upload Button */}
+              <label className="px-3 py-1.5 bg-[#e11d48] hover:bg-[#be123c] text-white rounded-xl text-xs font-black flex items-center justify-center gap-1.5 cursor-pointer shadow-xs transition shrink-0">
+                <Upload className="w-3.5 h-3.5" />
+                <span>এক সাথে ৩টি ছবি আপলোড</span>
+                <input
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  className="hidden"
+                  onChange={handleMultipleFiles}
+                />
+              </label>
             </div>
 
-            {/* Image 1 (Main) */}
-            <div className="space-y-1">
-              <div className="flex items-center justify-between text-[11px] font-bold text-zinc-700">
-                <span>ছবি ১ (প্রধান ছবি - মেইন কভার) *</span>
-                {image1 && (
-                  <button type="button" onClick={() => setImage1('')} className="text-rose-600 text-[10px] hover:underline flex items-center gap-0.5">
-                    <Trash2 className="w-3 h-3" /> মুছুন
-                  </button>
-                )}
-              </div>
-              <div className="flex gap-2 items-center">
-                <input
-                  type="text"
-                  value={image1}
-                  onChange={(e) => setImage1(e.target.value)}
-                  placeholder="ইমেজ লিঙ্ক পেস্ট করুন অথবা ফাইল আপলোড করুন"
-                  className="flex-1 px-3 py-1.5 border border-zinc-200 rounded-xl bg-white text-xs"
-                />
-                <label className="px-2.5 py-1.5 bg-zinc-100 hover:bg-zinc-200 border border-zinc-300 rounded-xl text-zinc-700 text-xs font-bold flex items-center gap-1 cursor-pointer shrink-0">
-                  <Upload className="w-3.5 h-3.5" />
-                  <span>আপলোড</span>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={(e) => handleFileUpload(e, setImage1)}
-                  />
-                </label>
-              </div>
-              {image1 && (
-                <div className="w-12 h-14 rounded-lg overflow-hidden border border-rose-200 mt-1 relative">
-                  <img src={image1} alt="Preview 1" className="w-full h-full object-cover" />
-                </div>
-              )}
-            </div>
+            <p className="text-[10px] text-zinc-500">
+              * গুগল ড্রাইভের যে কোনো শেয়ার লিঙ্ক পেস্ট করলে সিস্টেম স্বয়ংক্রিয়ভাবে লাইভ ইমেজ লিঙ্কে রূপান্তর করবে।
+            </p>
 
-            {/* Image 2 */}
-            <div className="space-y-1 pt-1 border-t border-rose-100">
-              <div className="flex items-center justify-between text-[11px] font-bold text-zinc-700">
-                <span>ছবি ২ (পার্শ্ব বা পেছন ভিউ)</span>
-                {image2 && (
-                  <button type="button" onClick={() => setImage2('')} className="text-rose-600 text-[10px] hover:underline flex items-center gap-0.5">
-                    <Trash2 className="w-3 h-3" /> মুছুন
-                  </button>
-                )}
-              </div>
-              <div className="flex gap-2 items-center">
-                <input
-                  type="text"
-                  value={image2}
-                  onChange={(e) => setImage2(e.target.value)}
-                  placeholder="ইমেজ লিঙ্ক পেস্ট করুন বা ফাইল আপলোড করুন"
-                  className="flex-1 px-3 py-1.5 border border-zinc-200 rounded-xl bg-white text-xs"
-                />
-                <label className="px-2.5 py-1.5 bg-zinc-100 hover:bg-zinc-200 border border-zinc-300 rounded-xl text-zinc-700 text-xs font-bold flex items-center gap-1 cursor-pointer shrink-0">
-                  <Upload className="w-3.5 h-3.5" />
-                  <span>আপলোড</span>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={(e) => handleFileUpload(e, setImage2)}
-                  />
-                </label>
-              </div>
-              {image2 && (
-                <div className="w-12 h-14 rounded-lg overflow-hidden border border-rose-200 mt-1 relative">
-                  <img src={image2} alt="Preview 2" className="w-full h-full object-cover" />
+            {/* Image Inputs 1, 2, 3 */}
+            {[0, 1, 2].map((idx) => (
+              <div key={idx} className="space-y-1 pt-1.5 border-t border-rose-100 first:border-0 first:pt-0">
+                <div className="flex items-center justify-between text-[11px] font-bold text-zinc-700">
+                  <span>
+                    {idx === 0 ? 'ছবি ১ (মেইন কভার ছবি) *' : idx === 1 ? 'ছবি ২ (সাইড / ব্যাক ভিউ)' : 'ছবি ৩ (কাপড়ের নিখুঁত কাজ / ক্লোজ-আপ)'}
+                  </span>
+                  {images[idx] && (
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveImage(idx)}
+                      className="text-rose-600 text-[10px] hover:underline flex items-center gap-0.5 cursor-pointer"
+                    >
+                      <Trash2 className="w-3 h-3" /> মুছুন
+                    </button>
+                  )}
                 </div>
-              )}
-            </div>
 
-            {/* Image 3 */}
-            <div className="space-y-1 pt-1 border-t border-rose-100">
-              <div className="flex items-center justify-between text-[11px] font-bold text-zinc-700">
-                <span>ছবি ৩ (ফেব্রিক / নিখুঁত কারুকাজ ভিউ)</span>
-                {image3 && (
-                  <button type="button" onClick={() => setImage3('')} className="text-rose-600 text-[10px] hover:underline flex items-center gap-0.5">
-                    <Trash2 className="w-3 h-3" /> মুছুন
-                  </button>
-                )}
-              </div>
-              <div className="flex gap-2 items-center">
-                <input
-                  type="text"
-                  value={image3}
-                  onChange={(e) => setImage3(e.target.value)}
-                  placeholder="ইমেজ লিঙ্ক পেস্ট করুন বা ফাইল আপলোড করুন"
-                  className="flex-1 px-3 py-1.5 border border-zinc-200 rounded-xl bg-white text-xs"
-                />
-                <label className="px-2.5 py-1.5 bg-zinc-100 hover:bg-zinc-200 border border-zinc-300 rounded-xl text-zinc-700 text-xs font-bold flex items-center gap-1 cursor-pointer shrink-0">
-                  <Upload className="w-3.5 h-3.5" />
-                  <span>আপলোড</span>
+                <div className="flex gap-2 items-center">
                   <input
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={(e) => handleFileUpload(e, setImage3)}
+                    type="text"
+                    value={images[idx]}
+                    onChange={(e) => handleImageChange(idx, e.target.value)}
+                    placeholder="গুগল ড্রাইভ বা ওয়েব ইমেজ লিঙ্ক পেস্ট করুন"
+                    className="flex-1 px-3 py-1.5 border border-zinc-200 rounded-xl bg-white text-xs"
                   />
-                </label>
-              </div>
-              {image3 && (
-                <div className="w-12 h-14 rounded-lg overflow-hidden border border-rose-200 mt-1 relative">
-                  <img src={image3} alt="Preview 3" className="w-full h-full object-cover" />
+                  {images[idx] && (
+                    <div className="w-10 h-10 rounded-lg overflow-hidden border border-rose-200 shrink-0 bg-white">
+                      <img src={images[idx]} alt={`Preview ${idx + 1}`} className="w-full h-full object-cover" />
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
+              </div>
+            ))}
           </div>
 
           {/* Short Video Upload / Link Section */}
@@ -293,15 +301,15 @@ export default function ProductFormModal({
                 <Video className="w-4 h-4 text-[#e11d48]" />
                 <span>পোশাকের শর্ট ভিডিও (Short Video / Reel)</span>
               </span>
-              <span className="text-[10px] text-zinc-500">MP4 ফাইল বা সরাসরি লিঙ্ক</span>
+              <span className="text-[10px] text-zinc-500">গুগল ড্রাইভ লিঙ্ক বা MP4 ফাইল</span>
             </div>
 
             <div className="flex gap-2 items-center">
               <input
                 type="text"
                 value={videoUrl}
-                onChange={(e) => setVideoUrl(e.target.value)}
-                placeholder="ভিডিও লিঙ্ক পেস্ট করুন বা MP4 ফাইল আপলোড করুন"
+                onChange={(e) => setVideoUrl(convertGoogleDriveLink(e.target.value))}
+                placeholder="গুগল ড্রাইভ বা ভিডিও লিঙ্ক পেস্ট করুন"
                 className="flex-1 px-3 py-1.5 border border-zinc-200 rounded-xl bg-white text-xs"
               />
               <label className="px-2.5 py-1.5 bg-zinc-100 hover:bg-zinc-200 border border-zinc-300 rounded-xl text-zinc-700 text-xs font-bold flex items-center gap-1 cursor-pointer shrink-0">
@@ -311,7 +319,7 @@ export default function ProductFormModal({
                   type="file"
                   accept="video/mp4,video/webm"
                   className="hidden"
-                  onChange={(e) => handleFileUpload(e, setVideoUrl, 15)}
+                  onChange={handleVideoUpload}
                 />
               </label>
             </div>
@@ -335,7 +343,7 @@ export default function ProductFormModal({
             />
           </div>
 
-          {/* Trending & Bestseller Toggles */}
+          {/* Highlight Toggles */}
           <ProductHighlightToggles
             featured={featured}
             bestseller={bestseller}
@@ -343,7 +351,7 @@ export default function ProductFormModal({
             onBestsellerChange={setBestseller}
           />
 
-          {/* Actions */}
+          {/* Action Buttons */}
           <div className="pt-2 flex gap-2">
             <button
               type="button"
