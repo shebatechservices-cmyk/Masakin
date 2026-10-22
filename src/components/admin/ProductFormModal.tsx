@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { X, Save, Image as ImageIcon, Video, Upload, Trash2, CheckCircle2 } from 'lucide-react';
+import { X, Save, Plus, Video, Trash2, Link as LinkIcon } from 'lucide-react';
 import { Product, ProductCategory } from '@/types';
 import ProductHighlightToggles from './ProductHighlightToggles';
 
@@ -10,7 +10,6 @@ function convertGoogleDriveLink(url: string): string {
   if (!url) return '';
   const trimmed = url.trim();
   
-  // Patterns like: https://drive.google.com/file/d/FILE_ID/view... or id=FILE_ID
   const matchFileD = trimmed.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
   if (matchFileD && matchFileD[1]) {
     return `https://lh3.googleusercontent.com/d/${matchFileD[1]}`;
@@ -52,6 +51,10 @@ export default function ProductFormModal({
     product?.images?.[2] || ''
   ]);
 
+  // Active Link input popup modal/prompt for a slot
+  const [activeLinkSlot, setActiveLinkSlot] = useState<number | 'video' | null>(null);
+  const [linkInputValue, setLinkInputValue] = useState('');
+
   // Short Video state
   const [videoUrl, setVideoUrl] = useState(product?.videoUrl || '');
 
@@ -59,32 +62,28 @@ export default function ProductFormModal({
   const [featured, setFeatured] = useState(product?.featured || false);
   const [bestseller, setBestseller] = useState(product?.bestseller || false);
 
-  // Multi-image file selection (select up to 3 images at once)
-  const handleMultipleFiles = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files || files.length === 0) return;
+  // Single file upload for specific slot
+  const handleSingleImageUpload = (index: number, e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
 
-    const fileList = Array.from(files).slice(0, 3);
-    const newImages = [...images];
+    if (file.size > 5 * 1024 * 1024) {
+      alert('ছবির সাইজ সর্বোচ্চ ৫MB হতে পারে!');
+      return;
+    }
 
-    fileList.forEach((file, idx) => {
-      if (file.size > 5 * 1024 * 1024) {
-        alert(`${file.name} ফাইলটি ৫MB এর বেশি, তাই বাদ দেওয়া হলো।`);
-        return;
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const res = event.target?.result as string;
+      if (res) {
+        setImages((prev) => {
+          const updated = [...prev];
+          updated[index] = res;
+          return updated;
+        });
       }
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        const res = event.target?.result as string;
-        if (res) {
-          setImages((prev) => {
-            const copy = [...prev];
-            copy[idx] = res;
-            return copy;
-          });
-        }
-      };
-      reader.readAsDataURL(file);
-    });
+    };
+    reader.readAsDataURL(file);
   };
 
   // Video file upload handler
@@ -92,8 +91,8 @@ export default function ProductFormModal({
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (file.size > 15 * 1024 * 1024) {
-      alert('ভিডিওর সাইজ সর্বোচ্চ ১৫MB হতে পারে!');
+    if (file.size > 20 * 1024 * 1024) {
+      alert('ভিডিওর সাইজ সর্বোচ্চ ২০MB হতে পারে!');
       return;
     }
 
@@ -105,13 +104,19 @@ export default function ProductFormModal({
     reader.readAsDataURL(file);
   };
 
-  const handleImageChange = (index: number, val: string) => {
-    const converted = convertGoogleDriveLink(val);
-    setImages((prev) => {
-      const updated = [...prev];
-      updated[index] = converted;
-      return updated;
-    });
+  const handleApplyLink = () => {
+    const converted = convertGoogleDriveLink(linkInputValue);
+    if (activeLinkSlot === 'video') {
+      setVideoUrl(converted);
+    } else if (typeof activeLinkSlot === 'number') {
+      setImages((prev) => {
+        const copy = [...prev];
+        copy[activeLinkSlot] = converted;
+        return copy;
+      });
+    }
+    setActiveLinkSlot(null);
+    setLinkInputValue('');
   };
 
   const handleRemoveImage = (index: number) => {
@@ -126,7 +131,6 @@ export default function ProductFormModal({
     e.preventDefault();
     const discountPercent = Math.max(0, Math.round(((originalPrice - price) / originalPrice) * 100));
 
-    // Filter valid images (at least 1 image is kept)
     const validImages = images
       .map((img) => convertGoogleDriveLink(img))
       .filter((img) => img.trim() !== '');
@@ -157,19 +161,21 @@ export default function ProductFormModal({
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto flex items-center justify-center p-3 sm:p-4">
       <div className="fixed inset-0 bg-black/60 backdrop-blur-xs" onClick={onClose} />
-      <div className="relative bg-white rounded-3xl max-w-lg w-full p-5 sm:p-7 shadow-2xl z-10 border border-zinc-200 my-8">
+      
+      {/* Compact Modal Box */}
+      <div className="relative bg-white rounded-3xl max-w-lg w-full p-5 sm:p-6 shadow-2xl z-10 border border-zinc-200 my-4 max-h-[92vh] overflow-y-auto">
         
-        {/* Modal Header */}
-        <div className="flex items-center justify-between pb-3 border-b border-zinc-100 mb-4">
-          <h3 className="font-extrabold text-base text-zinc-900">
-            {product ? 'পোশাকের তথ্য এডিট করুন' : 'নতুন পোশাক যুক্ত করুন'}
+        {/* Header */}
+        <div className="flex items-center justify-between pb-2.5 border-b border-zinc-100 mb-3">
+          <h3 className="font-extrabold text-sm sm:text-base text-zinc-900">
+            {product ? 'পোশাক এডিট করুন' : 'নতুন পোশাক যুক্ত করুন'}
           </h3>
           <button onClick={onClose} className="p-1 rounded-full text-zinc-400 hover:text-zinc-600 cursor-pointer">
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4 text-xs sm:text-sm">
+        <form onSubmit={handleSubmit} className="space-y-3 text-xs">
           {/* Product Name */}
           <div>
             <label className="block font-bold text-zinc-700 mb-1">পোশাকের নাম *</label>
@@ -179,18 +185,18 @@ export default function ProductFormModal({
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="যেমন: নারীদের রেডিমেড অর্গানজা থ্রি-পিস"
-              className="w-full px-3 py-2 border border-zinc-200 rounded-xl bg-zinc-50 text-xs focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#e11d48]"
+              className="w-full px-3 py-2 border border-zinc-200 rounded-xl bg-zinc-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#e11d48]"
             />
           </div>
 
-          {/* Category & Stock */}
-          <div className="grid grid-cols-2 gap-3">
+          {/* Category & Stock in 1 Row */}
+          <div className="grid grid-cols-2 gap-2.5">
             <div>
               <label className="block font-bold text-zinc-700 mb-1">ক্যাটাগরি</label>
               <select
                 value={category}
                 onChange={(e) => setCategory(e.target.value as ProductCategory)}
-                className="w-full px-3 py-2 border border-zinc-200 rounded-xl bg-zinc-50 text-xs focus:bg-white focus:outline-none cursor-pointer"
+                className="w-full px-2.5 py-2 border border-zinc-200 rounded-xl bg-zinc-50 focus:bg-white focus:outline-none cursor-pointer text-xs"
               >
                 <option value="womens">নারীদের রেডিমেড পোশাক</option>
                 <option value="kids">বাচ্চাদের ফ্রক ও ড্রেস</option>
@@ -199,7 +205,7 @@ export default function ProductFormModal({
             </div>
 
             <div>
-              <label className="block font-bold text-zinc-700 mb-1">স্টক পরিমাণ (পিস)</label>
+              <label className="block font-bold text-zinc-700 mb-1">স্টক (পিস)</label>
               <input
                 type="number"
                 value={stockCount}
@@ -209,8 +215,8 @@ export default function ProductFormModal({
             </div>
           </div>
 
-          {/* Pricing */}
-          <div className="grid grid-cols-2 gap-3">
+          {/* Prices in 1 Row */}
+          <div className="grid grid-cols-2 gap-2.5">
             <div>
               <label className="block font-bold text-zinc-700 mb-1">বিক্রয় মূল্য (৳) *</label>
               <input
@@ -222,7 +228,7 @@ export default function ProductFormModal({
               />
             </div>
             <div>
-              <label className="block font-bold text-zinc-700 mb-1">মূল মূল্য / কাটা মূল্য (৳)</label>
+              <label className="block font-bold text-zinc-700 mb-1">কাটা মূল্য (৳)</label>
               <input
                 type="number"
                 value={originalPrice}
@@ -232,104 +238,211 @@ export default function ProductFormModal({
             </div>
           </div>
 
-          {/* 3 IMAGES AT ONCE - Upload & Google Drive Auto-convert */}
-          <div className="p-3.5 bg-rose-50/40 rounded-2xl border border-rose-200/70 space-y-3">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-              <span className="font-extrabold text-xs text-rose-950 flex items-center gap-1.5">
-                <ImageIcon className="w-4 h-4 text-rose-600" />
-                <span>৩টি ছবি (এক সাথে ৩টি সিলেক্ট করুন অথবা ড্রাইভ লিঙ্ক দিন)</span>
+          {/* COMPACT SIDE-BY-SIDE MEDIA ROW: 3 IMAGES + 1 SHORT VIDEO (4 BOXES IN 1 ROW) */}
+          <div className="p-3 bg-rose-50/50 rounded-2xl border border-rose-200/80 space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="font-extrabold text-[11px] text-rose-950">
+                মিডিয়া আপলোড (+ বাটনে ট্যাপ করুন)
               </span>
-              
-              {/* 1-Click 3-Images Batch Upload Button */}
-              <label className="px-3 py-1.5 bg-[#e11d48] hover:bg-[#be123c] text-white rounded-xl text-xs font-black flex items-center justify-center gap-1.5 cursor-pointer shadow-xs transition shrink-0">
-                <Upload className="w-3.5 h-3.5" />
-                <span>এক সাথে ৩টি ছবি আপলোড</span>
-                <input
-                  type="file"
-                  accept="image/*"
-                  multiple
-                  className="hidden"
-                  onChange={handleMultipleFiles}
-                />
-              </label>
+              <span className="text-[10px] text-zinc-500">৩টি ছবি + ১টি শর্ট ভিডিও</span>
             </div>
 
-            <p className="text-[10px] text-zinc-500">
-              * গুগল ড্রাইভের যে কোনো শেয়ার লিঙ্ক পেস্ট করলে সিস্টেম স্বয়ংক্রিয়ভাবে লাইভ ইমেজ লিঙ্কে রূপান্তর করবে।
-            </p>
-
-            {/* Image Inputs 1, 2, 3 */}
-            {[0, 1, 2].map((idx) => (
-              <div key={idx} className="space-y-1 pt-1.5 border-t border-rose-100 first:border-0 first:pt-0">
-                <div className="flex items-center justify-between text-[11px] font-bold text-zinc-700">
-                  <span>
-                    {idx === 0 ? 'ছবি ১ (মেইন কভার ছবি) *' : idx === 1 ? 'ছবি ২ (সাইড / ব্যাক ভিউ)' : 'ছবি ৩ (কাপড়ের নিখুঁত কাজ / ক্লোজ-আপ)'}
-                  </span>
-                  {images[idx] && (
+            <div className="grid grid-cols-4 gap-2">
+              {/* Image 1 Box */}
+              <div className="relative aspect-square rounded-2xl border-2 border-dashed border-rose-300 bg-white overflow-hidden flex flex-col items-center justify-center group hover:border-[#e11d48] transition">
+                {images[0] ? (
+                  <>
+                    <img src={images[0]} alt="ছবি ১" className="w-full h-full object-cover" />
                     <button
                       type="button"
-                      onClick={() => handleRemoveImage(idx)}
-                      className="text-rose-600 text-[10px] hover:underline flex items-center gap-0.5 cursor-pointer"
+                      onClick={() => handleRemoveImage(0)}
+                      className="absolute top-1 right-1 p-1 bg-black/70 text-white rounded-full hover:bg-rose-600 transition"
+                      title="মুছুন"
                     >
-                      <Trash2 className="w-3 h-3" /> মুছুন
+                      <Trash2 className="w-3 h-3" />
                     </button>
-                  )}
-                </div>
-
-                <div className="flex gap-2 items-center">
-                  <input
-                    type="text"
-                    value={images[idx]}
-                    onChange={(e) => handleImageChange(idx, e.target.value)}
-                    placeholder="গুগল ড্রাইভ বা ওয়েব ইমেজ লিঙ্ক পেস্ট করুন"
-                    className="flex-1 px-3 py-1.5 border border-zinc-200 rounded-xl bg-white text-xs"
-                  />
-                  {images[idx] && (
-                    <div className="w-10 h-10 rounded-lg overflow-hidden border border-rose-200 shrink-0 bg-white">
-                      <img src={images[idx]} alt={`Preview ${idx + 1}`} className="w-full h-full object-cover" />
+                    <span className="absolute bottom-0 inset-x-0 bg-black/60 text-white text-[9px] font-bold text-center py-0.5">
+                      প্রধান ছবি
+                    </span>
+                  </>
+                ) : (
+                  <label className="w-full h-full flex flex-col items-center justify-center cursor-pointer p-1 text-center">
+                    <div className="w-7 h-7 rounded-full bg-rose-100 text-[#e11d48] flex items-center justify-center mb-1 group-hover:scale-110 transition">
+                      <Plus className="w-4 h-4" />
                     </div>
-                  )}
-                </div>
+                    <span className="text-[10px] font-bold text-zinc-700">ছবি ১ *</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => handleSingleImageUpload(0, e)}
+                    />
+                  </label>
+                )}
+                <button
+                  type="button"
+                  onClick={() => { setActiveLinkSlot(0); setLinkInputValue(images[0] || ''); }}
+                  className="absolute bottom-1 left-1 p-0.5 bg-white/90 text-zinc-700 rounded border border-zinc-200 hover:text-rose-600 text-[8px] flex items-center gap-0.5"
+                  title="লিংক দিন"
+                >
+                  <LinkIcon className="w-2.5 h-2.5" />
+                </button>
               </div>
-            ))}
+
+              {/* Image 2 Box */}
+              <div className="relative aspect-square rounded-2xl border-2 border-dashed border-rose-300 bg-white overflow-hidden flex flex-col items-center justify-center group hover:border-[#e11d48] transition">
+                {images[1] ? (
+                  <>
+                    <img src={images[1]} alt="ছবি ২" className="w-full h-full object-cover" />
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveImage(1)}
+                      className="absolute top-1 right-1 p-1 bg-black/70 text-white rounded-full hover:bg-rose-600 transition"
+                      title="মুছুন"
+                    >
+                      <Trash2 className="w-3 h-3" />
+                    </button>
+                    <span className="absolute bottom-0 inset-x-0 bg-black/60 text-white text-[9px] font-bold text-center py-0.5">
+                      ছবি ২
+                    </span>
+                  </>
+                ) : (
+                  <label className="w-full h-full flex flex-col items-center justify-center cursor-pointer p-1 text-center">
+                    <div className="w-7 h-7 rounded-full bg-rose-100 text-[#e11d48] flex items-center justify-center mb-1 group-hover:scale-110 transition">
+                      <Plus className="w-4 h-4" />
+                    </div>
+                    <span className="text-[10px] font-bold text-zinc-700">ছবি ২</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => handleSingleImageUpload(1, e)}
+                    />
+                  </label>
+                )}
+                <button
+                  type="button"
+                  onClick={() => { setActiveLinkSlot(1); setLinkInputValue(images[1] || ''); }}
+                  className="absolute bottom-1 left-1 p-0.5 bg-white/90 text-zinc-700 rounded border border-zinc-200 hover:text-rose-600 text-[8px] flex items-center gap-0.5"
+                  title="লিংক দিন"
+                >
+                  <LinkIcon className="w-2.5 h-2.5" />
+                </button>
+              </div>
+
+              {/* Image 3 Box */}
+              <div className="relative aspect-square rounded-2xl border-2 border-dashed border-rose-300 bg-white overflow-hidden flex flex-col items-center justify-center group hover:border-[#e11d48] transition">
+                {images[2] ? (
+                  <>
+                    <img src={images[2]} alt="ছবি ৩" className="w-full h-full object-cover" />
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveImage(2)}
+                      className="absolute top-1 right-1 p-1 bg-black/70 text-white rounded-full hover:bg-rose-600 transition"
+                      title="মুছুন"
+                    >
+                      <Trash2 className="w-3 h-3" />
+                    </button>
+                    <span className="absolute bottom-0 inset-x-0 bg-black/60 text-white text-[9px] font-bold text-center py-0.5">
+                      ছবি ৩
+                    </span>
+                  </>
+                ) : (
+                  <label className="w-full h-full flex flex-col items-center justify-center cursor-pointer p-1 text-center">
+                    <div className="w-7 h-7 rounded-full bg-rose-100 text-[#e11d48] flex items-center justify-center mb-1 group-hover:scale-110 transition">
+                      <Plus className="w-4 h-4" />
+                    </div>
+                    <span className="text-[10px] font-bold text-zinc-700">ছবি ৩</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => handleSingleImageUpload(2, e)}
+                    />
+                  </label>
+                )}
+                <button
+                  type="button"
+                  onClick={() => { setActiveLinkSlot(2); setLinkInputValue(images[2] || ''); }}
+                  className="absolute bottom-1 left-1 p-0.5 bg-white/90 text-zinc-700 rounded border border-zinc-200 hover:text-rose-600 text-[8px] flex items-center gap-0.5"
+                  title="লিংক দিন"
+                >
+                  <LinkIcon className="w-2.5 h-2.5" />
+                </button>
+              </div>
+
+              {/* Short Video Box */}
+              <div className="relative aspect-square rounded-2xl border-2 border-dashed border-zinc-400 bg-zinc-900 overflow-hidden flex flex-col items-center justify-center group hover:border-[#e11d48] transition">
+                {videoUrl ? (
+                  <>
+                    <video src={videoUrl} className="w-full h-full object-cover" />
+                    <button
+                      type="button"
+                      onClick={() => setVideoUrl('')}
+                      className="absolute top-1 right-1 p-1 bg-black/80 text-white rounded-full hover:bg-rose-600 transition"
+                      title="ভিডিও মুছুন"
+                    >
+                      <Trash2 className="w-3 h-3" />
+                    </button>
+                    <span className="absolute bottom-0 inset-x-0 bg-rose-600 text-white text-[9px] font-bold text-center py-0.5">
+                      ভিডিও যুক্ত
+                    </span>
+                  </>
+                ) : (
+                  <label className="w-full h-full flex flex-col items-center justify-center cursor-pointer p-1 text-center">
+                    <div className="w-7 h-7 rounded-full bg-zinc-800 text-rose-400 flex items-center justify-center mb-1 group-hover:scale-110 transition">
+                      <Video className="w-4 h-4" />
+                    </div>
+                    <span className="text-[10px] font-bold text-white">+ ভিডিও</span>
+                    <input
+                      type="file"
+                      accept="video/mp4,video/webm"
+                      className="hidden"
+                      onChange={handleVideoUpload}
+                    />
+                  </label>
+                )}
+                <button
+                  type="button"
+                  onClick={() => { setActiveLinkSlot('video'); setLinkInputValue(videoUrl || ''); }}
+                  className="absolute bottom-1 left-1 p-0.5 bg-black/80 text-zinc-300 rounded border border-zinc-700 hover:text-rose-400 text-[8px] flex items-center gap-0.5"
+                  title="ড্রাইভ/ওয়েব ভিডিও লিঙ্ক"
+                >
+                  <LinkIcon className="w-2.5 h-2.5" />
+                </button>
+              </div>
+            </div>
           </div>
 
-          {/* Short Video Upload / Link Section */}
-          <div className="p-3.5 bg-zinc-50 rounded-2xl border border-zinc-200 space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="font-extrabold text-xs text-zinc-950 flex items-center gap-1.5">
-                <Video className="w-4 h-4 text-[#e11d48]" />
-                <span>পোশাকের শর্ট ভিডিও (Short Video / Reel)</span>
-              </span>
-              <span className="text-[10px] text-zinc-500">গুগল ড্রাইভ লিঙ্ক বা MP4 ফাইল</span>
-            </div>
-
-            <div className="flex gap-2 items-center">
-              <input
-                type="text"
-                value={videoUrl}
-                onChange={(e) => setVideoUrl(convertGoogleDriveLink(e.target.value))}
-                placeholder="গুগল ড্রাইভ বা ভিডিও লিঙ্ক পেস্ট করুন"
-                className="flex-1 px-3 py-1.5 border border-zinc-200 rounded-xl bg-white text-xs"
-              />
-              <label className="px-2.5 py-1.5 bg-zinc-100 hover:bg-zinc-200 border border-zinc-300 rounded-xl text-zinc-700 text-xs font-bold flex items-center gap-1 cursor-pointer shrink-0">
-                <Upload className="w-3.5 h-3.5" />
-                <span>ভিডিও</span>
+          {/* Optional Direct / Drive Link Prompt Overlay if user clicks the link button */}
+          {activeLinkSlot !== null && (
+            <div className="p-2.5 bg-white rounded-xl border border-rose-300 shadow-sm space-y-1.5 animate-in fade-in">
+              <div className="flex items-center justify-between text-[11px] font-bold text-zinc-800">
+                <span>
+                  {activeLinkSlot === 'video' ? 'ভিডিও লিঙ্ক (গুগল ড্রাইভ বা ওয়েব URL):' : `ছবি ${Number(activeLinkSlot) + 1}-এর লিঙ্ক:`}
+                </span>
+                <button type="button" onClick={() => setActiveLinkSlot(null)} className="text-zinc-400 hover:text-zinc-600">
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </div>
+              <div className="flex gap-1.5">
                 <input
-                  type="file"
-                  accept="video/mp4,video/webm"
-                  className="hidden"
-                  onChange={handleVideoUpload}
+                  type="text"
+                  value={linkInputValue}
+                  onChange={(e) => setLinkInputValue(e.target.value)}
+                  placeholder="গুগল ড্রাইভ শেয়ার লিঙ্ক পেস্ট করুন..."
+                  className="flex-1 px-2.5 py-1 text-xs border border-zinc-300 rounded-lg"
                 />
-              </label>
-            </div>
-
-            {videoUrl && (
-              <div className="mt-2 rounded-xl overflow-hidden border border-zinc-300 bg-black aspect-video max-w-[200px]">
-                <video src={videoUrl} controls className="w-full h-full object-cover" />
+                <button
+                  type="button"
+                  onClick={handleApplyLink}
+                  className="px-3 py-1 bg-[#e11d48] text-white text-xs font-bold rounded-lg cursor-pointer"
+                >
+                  যুক্ত করুন
+                </button>
               </div>
-            )}
-          </div>
+            </div>
+          )}
 
           {/* Sizes */}
           <div>
@@ -351,7 +464,7 @@ export default function ProductFormModal({
             onBestsellerChange={setBestseller}
           />
 
-          {/* Action Buttons */}
+          {/* Actions */}
           <div className="pt-2 flex gap-2">
             <button
               type="button"
