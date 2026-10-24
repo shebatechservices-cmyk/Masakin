@@ -2,13 +2,13 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Lock, Mail, ShieldCheck, ArrowRight, Eye, EyeOff, AlertTriangle } from 'lucide-react';
+import { Lock, User, ShieldCheck, ArrowRight, Eye, EyeOff, AlertTriangle } from 'lucide-react';
 import { useAdminAuth } from '@/context/AdminAuthContext';
 
 export default function SecretLoginPage() {
   const router = useRouter();
   const { login, isAuthenticated } = useAdminAuth();
-  const [email, setEmail] = useState('');
+  const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
@@ -41,7 +41,7 @@ export default function SecretLoginPage() {
     if (lockoutTimer > 0) return;
 
     setError('');
-    const success = login(email, password);
+    const success = login(identifier, password);
     if (success) {
       setFailedAttempts(0);
       router.push('/admin');
@@ -52,7 +52,7 @@ export default function SecretLoginPage() {
         setLockoutTimer(30);
         setError('পরপর ৫ বার ভুল তথ্য দেওয়ায় লগইন ৩০ সেকেন্ডের জন্য লক করা হয়েছে।');
       } else {
-        setError(`ভুল ইমেইল বা পাসওয়ার্ড। আর ${5 - newAttempts} বার চেষ্টা করা যাবে।`);
+        setError(`ভুল ইউজার আইডি বা পাসওয়ার্ড। আর ${5 - newAttempts} বার চেষ্টা করা যাবে।`);
       }
     }
   };
@@ -74,16 +74,18 @@ export default function SecretLoginPage() {
 
         <form onSubmit={handleLogin} className="space-y-4">
           <div>
-            <label className="block text-xs font-bold text-zinc-700 mb-1">ইমেইল ঠিকানা</label>
+            <label className="block text-xs font-bold text-zinc-700 mb-1">
+              ইউজার আইডি (ইমেইল অথবা মোবাইল নম্বর)
+            </label>
             <div className="relative">
-              <Mail className="w-4 h-4 text-zinc-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+              <User className="w-4 h-4 text-zinc-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
               <input
-                type="email"
+                type="text"
                 required
                 disabled={lockoutTimer > 0}
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="e.g. admin@masakin.com"
+                value={identifier}
+                onChange={(e) => setIdentifier(e.target.value)}
+                placeholder="e.g. admin@masakin.com অথবা 01782282282"
                 className="w-full pl-10 pr-4 py-2.5 bg-zinc-50 border border-zinc-200 rounded-xl text-xs focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#e11d48] disabled:opacity-50"
               />
             </div>

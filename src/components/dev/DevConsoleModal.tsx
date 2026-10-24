@@ -124,7 +124,7 @@ export default function DevConsoleModal({ isOpen, onClose }: DevConsoleModalProp
                             <span>{u.name}</span>
                             <span className="text-[9px] px-1.5 py-0.2 rounded bg-zinc-800 text-zinc-400 font-normal">{u.role}</span>
                           </p>
-                          <p className="text-zinc-500">{u.email} | পাস: <span className="text-zinc-300 font-mono">{u.password}</span></p>
+                          <p className="text-zinc-500">{u.phone ? `${u.phone} | ` : ''}{u.email} | পাস: <span className="text-zinc-300 font-mono">{u.password}</span></p>
                         </div>
                         <div className="flex items-center gap-1.5">
                           <button onClick={() => setEditingUser(u)} className="p-1 text-zinc-400 hover:text-amber-400 cursor-pointer" title="সংশোধন">

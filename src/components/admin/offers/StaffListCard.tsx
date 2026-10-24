@@ -1,13 +1,16 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Users, UserPlus, ShieldCheck, UserCheck, Trash2 } from 'lucide-react';
+import { Users, UserPlus, ShieldCheck, UserCheck, Trash2, Edit3 } from 'lucide-react';
 import { useAdminAuth } from '@/context/AdminAuthContext';
+import { SystemUser } from '@/types/auth';
 import StaffCreateModal from './StaffCreateModal';
+import StaffEditModal from './StaffEditModal';
 
 export default function StaffListCard() {
   const { users, user, deleteUser } = useAdminAuth();
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingStaff, setEditingStaff] = useState<SystemUser | null>(null);
 
   if (user?.role !== 'admin' && user?.role !== 'super_admin') return null;
 
@@ -27,7 +30,7 @@ export default function StaffListCard() {
                 এডমিন ও স্টাফ টিম
               </h2>
               <span className="text-[11px] text-zinc-400 font-medium">
-                কর্মীদের তালিকা ও নতুন স্টাফ তৈরি করুন
+                কর্মীদের তালিকা, মোবাইল নম্বর ও এডিট-ডিলিট কন্ট্রোল
               </span>
             </div>
           </div>
@@ -55,12 +58,24 @@ export default function StaffListCard() {
                   </div>
                   <div>
                     <h3 className="font-bold text-xs text-zinc-900">{adm.name}</h3>
-                    <p className="text-[11px] text-zinc-500 font-mono">{adm.email}</p>
+                    <p className="text-[11px] text-zinc-500 font-mono">
+                      {adm.phone ? `${adm.phone} | ` : ''}{adm.email}
+                    </p>
                   </div>
                 </div>
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-white text-[#e11d48] border border-rose-200">
-                  শপ এডমিন (মালিক)
-                </span>
+                <div className="flex items-center gap-2">
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-white text-[#e11d48] border border-rose-200">
+                    শপ এডমিন (মালিক)
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setEditingStaff(adm)}
+                    className="p-1 text-zinc-400 hover:text-amber-500 transition cursor-pointer"
+                    title="এডমিন তথ্য সংশোধন"
+                  >
+                    <Edit3 className="w-3.5 h-3.5" />
+                  </button>
+                </div>
               </div>
               <p className="text-[10px] text-zinc-500">
                 এক্সেস: ড্যাশবোর্ড, POS, অর্ডার, প্রোডাক্ট, খরচ, লেজার ও শপ সেটিংস।
@@ -88,7 +103,9 @@ export default function StaffListCard() {
                       </div>
                       <div>
                         <h4 className="font-bold text-xs text-zinc-900">{staff.name}</h4>
-                        <p className="text-[10px] text-zinc-500 font-mono">{staff.email}</p>
+                        <p className="text-[10px] text-zinc-500 font-mono">
+                          {staff.phone ? `${staff.phone} | ` : ''}{staff.email}
+                        </p>
                       </div>
                     </div>
 
@@ -96,6 +113,14 @@ export default function StaffListCard() {
                       <span className="px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-bold">
                         POS ও অর্ডার
                       </span>
+                      <button
+                        type="button"
+                        onClick={() => setEditingStaff(staff)}
+                        className="p-1 text-zinc-400 hover:text-amber-500 transition cursor-pointer"
+                        title="স্টাফ তথ্য সংশোধন"
+                      >
+                        <Edit3 className="w-3.5 h-3.5" />
+                      </button>
                       {staff.id !== 'usr-staff-01' && (
                         <button
                           type="button"
@@ -116,6 +141,7 @@ export default function StaffListCard() {
       </div>
 
       <StaffCreateModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
+      <StaffEditModal staff={editingStaff} onClose={() => setEditingStaff(null)} />
     </>
   );
 }

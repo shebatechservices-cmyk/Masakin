@@ -12,6 +12,7 @@ interface StaffCreateModalProps {
 export default function StaffCreateModal({ isOpen, onClose }: StaffCreateModalProps) {
   const { createStaffMember } = useAdminAuth();
   const [name, setName] = useState('');
+  const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
@@ -29,10 +30,11 @@ export default function StaffCreateModal({ isOpen, onClose }: StaffCreateModalPr
       return;
     }
 
-    const res = createStaffMember({ name, email, password });
+    const res = createStaffMember({ name, email, phone, password });
     if (res.success) {
       setSuccessMsg(res.message);
       setName('');
+      setPhone('');
       setEmail('');
       setPassword('');
       setTimeout(() => {
@@ -73,6 +75,19 @@ export default function StaffCreateModal({ isOpen, onClose }: StaffCreateModalPr
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="e.g. মোঃ রফিকুল ইসলাম"
+              className="w-full px-3.5 py-2.5 border border-zinc-200 rounded-xl bg-zinc-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#e11d48]"
+            />
+          </div>
+
+          <div>
+            <label className="block font-bold text-zinc-700 mb-1">
+              মোবাইল নম্বর (লগইন আইডি হিসেবে ব্যবহারযোগ্য)
+            </label>
+            <input
+              type="tel"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              placeholder="e.g. 01711223344"
               className="w-full px-3.5 py-2.5 border border-zinc-200 rounded-xl bg-zinc-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#e11d48]"
             />
           </div>

@@ -4,6 +4,7 @@ export interface SystemUser {
   id: string;
   name: string;
   email: string;
+  phone?: string;
   password: string;
   role: UserRole;
   status: 'active' | 'inactive';
@@ -16,6 +17,7 @@ export const DEFAULT_USERS: SystemUser[] = [
     id: 'usr-dev-01',
     name: 'সুপার এডমিন / ডেভেলপার',
     email: 'dev@masakin.com',
+    phone: '01700000000',
     password: 'dev123',
     role: 'super_admin',
     status: 'active',
@@ -25,6 +27,7 @@ export const DEFAULT_USERS: SystemUser[] = [
     id: 'usr-admin-01',
     name: 'প্রধান পরিচালক / শপ এডমিন',
     email: 'admin@masakin.com',
+    phone: '01782282282',
     password: 'admin123',
     role: 'admin',
     status: 'active',
@@ -34,6 +37,7 @@ export const DEFAULT_USERS: SystemUser[] = [
     id: 'usr-staff-01',
     name: 'অর্ডার ও বিক্রয় কর্মী',
     email: 'staff@masakin.com',
+    phone: '01711223344',
     password: 'staff123',
     role: 'staff',
     status: 'active',
@@ -45,14 +49,14 @@ export const DEFAULT_USERS: SystemUser[] = [
 export interface AuthContextType {
   user: SystemUser | null;
   users: SystemUser[];
-  login: (email: string, pass: string) => boolean;
+  login: (identifier: string, pass: string) => boolean;
   logout: () => void;
   isAuthenticated: boolean;
-  createShopAdmin: (data: { name: string; email: string; password: string }) => { success: boolean; message: string };
-  createStaffMember: (data: { name: string; email: string; password: string }) => { success: boolean; message: string };
+  createShopAdmin: (data: { name: string; email: string; phone?: string; password: string }) => { success: boolean; message: string };
+  createStaffMember: (data: { name: string; email: string; phone?: string; password: string }) => { success: boolean; message: string };
   deleteUser: (userId: string) => boolean;
   updateUserPassword: (userId: string, newPass: string) => boolean;
-  updateUserDetails: (userId: string, data: { name?: string; email?: string; password?: string; role?: UserRole }) => boolean;
+  updateUserDetails: (userId: string, data: { name?: string; email?: string; phone?: string; password?: string; role?: UserRole }) => boolean;
   resetUsersToDefault: () => void;
   resetAllStoreData: () => void;
   canAccess: (pathname: string) => boolean;

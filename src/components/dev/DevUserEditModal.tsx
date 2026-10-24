@@ -1,18 +1,19 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { X, Check, UserCheck, Shield, KeyRound, Mail, User } from 'lucide-react';
+import { X, Check, UserCheck, Shield, KeyRound, Mail, User, Phone } from 'lucide-react';
 import { SystemUser, UserRole } from '@/types/auth';
 
 interface DevUserEditModalProps {
   userToEdit: SystemUser | null;
   onClose: () => void;
-  onSave: (userId: string, data: { name: string; email: string; password: string; role: UserRole }) => boolean;
+  onSave: (userId: string, data: { name: string; email: string; phone?: string; password: string; role: UserRole }) => boolean;
 }
 
 export default function DevUserEditModal({ userToEdit, onClose, onSave }: DevUserEditModalProps) {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [role, setRole] = useState<UserRole>('admin');
   const [statusMsg, setStatusMsg] = useState<{ text: string; isError: boolean } | null>(null);
@@ -21,6 +22,7 @@ export default function DevUserEditModal({ userToEdit, onClose, onSave }: DevUse
     if (userToEdit) {
       setName(userToEdit.name);
       setEmail(userToEdit.email);
+      setPhone(userToEdit.phone || '');
       setPassword(userToEdit.password);
       setRole(userToEdit.role);
       setStatusMsg(null);
@@ -36,7 +38,7 @@ export default function DevUserEditModal({ userToEdit, onClose, onSave }: DevUse
       return;
     }
 
-    const success = onSave(userToEdit.id, { name, email, password, role });
+    const success = onSave(userToEdit.id, { name, email, phone, password, role });
     if (success) {
       setStatusMsg({ text: 'ইউজার তথ্য সফলভাবে আপডেট হয়েছে!', isError: false });
       setTimeout(() => {
@@ -66,7 +68,7 @@ export default function DevUserEditModal({ userToEdit, onClose, onSave }: DevUse
           <div>
             <label className="block text-zinc-400 font-bold mb-1 flex items-center gap-1.5">
               <User className="w-3.5 h-3.5 text-rose-500" />
-              <span>নাম (Full Name):</span>
+              <span>নাম (Full Name) *</span>
             </label>
             <input
               type="text"
@@ -79,8 +81,22 @@ export default function DevUserEditModal({ userToEdit, onClose, onSave }: DevUse
 
           <div>
             <label className="block text-zinc-400 font-bold mb-1 flex items-center gap-1.5">
+              <Phone className="w-3.5 h-3.5 text-rose-500" />
+              <span>মোবাইল নম্বর (Phone / User ID)</span>
+            </label>
+            <input
+              type="tel"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              placeholder="e.g. 01782282282"
+              className="w-full px-3 py-2 bg-zinc-950 border border-zinc-700 rounded-xl text-white focus:outline-none focus:border-rose-500"
+            />
+          </div>
+
+          <div>
+            <label className="block text-zinc-400 font-bold mb-1 flex items-center gap-1.5">
               <Mail className="w-3.5 h-3.5 text-rose-500" />
-              <span>ইমেইল (Email):</span>
+              <span>ইমেইল (Email / User ID) *</span>
             </label>
             <input
               type="email"
@@ -94,7 +110,7 @@ export default function DevUserEditModal({ userToEdit, onClose, onSave }: DevUse
           <div>
             <label className="block text-zinc-400 font-bold mb-1 flex items-center gap-1.5">
               <KeyRound className="w-3.5 h-3.5 text-rose-500" />
-              <span>পাসওয়ার্ড (Password):</span>
+              <span>পাসওয়ার্ড (Password) *</span>
             </label>
             <input
               type="text"
@@ -108,7 +124,7 @@ export default function DevUserEditModal({ userToEdit, onClose, onSave }: DevUse
           <div>
             <label className="block text-zinc-400 font-bold mb-1 flex items-center gap-1.5">
               <Shield className="w-3.5 h-3.5 text-rose-500" />
-              <span>রোল / পদবী (Role):</span>
+              <span>রোল / পদবী (Role)</span>
             </label>
             <select
               value={role}
@@ -143,7 +159,7 @@ export default function DevUserEditModal({ userToEdit, onClose, onSave }: DevUse
               type="submit"
               className="flex-1 py-2.5 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-xl transition cursor-pointer"
             >
-              সংরক্ষণ করুন (Save Changes)
+              সংরক্ষণ করুন (Save)
             </button>
             <button
               type="button"

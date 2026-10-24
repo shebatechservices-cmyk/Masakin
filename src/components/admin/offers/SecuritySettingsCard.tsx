@@ -85,7 +85,7 @@ export default function SecuritySettingsCard() {
           >
             {targetUsers.map((u) => (
               <option key={u.id} value={u.id}>
-                {u.name} ({u.role === 'admin' ? 'এডমিন' : u.role === 'super_admin' ? 'সুপার এডমিন' : 'স্টাফ'}) - {u.email}
+                {u.name} ({u.role === 'admin' ? 'এডমিন' : u.role === 'super_admin' ? 'সুপার এডমিন' : 'স্টাফ'}) - {u.phone ? `${u.phone} / ` : ''}{u.email}
               </option>
             ))}
           </select>

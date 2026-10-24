@@ -29,18 +29,19 @@ export const AdminAuthProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
   const saveUsersToStorage = (updatedUsers: SystemUser[]) => {
     setUsers(updatedUsers);
-    try {
-      localStorage.setItem('masakin_system_users', JSON.stringify(updatedUsers));
-    } catch {}
+    try { localStorage.setItem('masakin_system_users', JSON.stringify(updatedUsers)); } catch {}
   };
 
-  const login = (email: string, pass: string): boolean => {
-    const cleanEmail = email.trim().toLowerCase();
+  const login = (identifier: string, pass: string): boolean => {
+    const cleanId = identifier.trim().toLowerCase();
     const cleanPass = pass.trim();
 
-    const matched = users.find(
-      (u) => u.email.toLowerCase() === cleanEmail && u.password === cleanPass && u.status === 'active'
-    );
+    const matched = users.find((u) => {
+      const emailMatch = u.email.toLowerCase() === cleanId;
+      const cleanDigits = cleanId.replace(/[^0-9]/g, '');
+      const phoneMatch = !!(u.phone && cleanDigits && u.phone.replace(/[^0-9]/g, '') === cleanDigits);
+      return (emailMatch || phoneMatch) && u.password === cleanPass && u.status === 'active';
+    });
 
     if (matched) {
       setUser(matched);
@@ -53,17 +54,24 @@ export const AdminAuthProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   };
 
   const createUser = (
-    data: { name: string; email: string; password: string },
+    data: { name: string; email: string; phone?: string; password: string },
     role: 'admin' | 'staff'
   ) => {
     const cleanEmail = data.email.trim().toLowerCase();
+    const cleanPhone = data.phone?.trim() || '';
+
     if (users.some((u) => u.email.toLowerCase() === cleanEmail)) {
       return { success: false, message: 'এই ইমেইল দিয়ে ইতোমধ্যে একটি একাউন্ট রয়েছে।' };
     }
+    if (cleanPhone && users.some((u) => u.phone && u.phone.trim() === cleanPhone)) {
+      return { success: false, message: 'এই ফোন নম্বর দিয়ে ইতোমধ্যে একটি একাউন্ট রয়েছে।' };
+    }
+
     const newUser: SystemUser = {
       id: `${role}-${Date.now()}`,
       name: data.name.trim(),
       email: cleanEmail,
+      phone: cleanPhone,
       password: data.password.trim(),
       role,
       status: 'active',
@@ -77,12 +85,11 @@ export const AdminAuthProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     };
   };
 
-  const createShopAdmin = (data: { name: string; email: string; password: string }) =>
+  const createShopAdmin = (data: { name: string; email: string; phone?: string; password: string }) =>
     createUser(data, 'admin');
 
-  const createStaffMember = (data: { name: string; email: string; password: string }) =>
+  const createStaffMember = (data: { name: string; email: string; phone?: string; password: string }) =>
     createUser(data, 'staff');
-
 
   const deleteUser = (userId: string): boolean => {
     if (userId === 'usr-dev-01') return false;
@@ -98,7 +105,7 @@ export const AdminAuthProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
   const updateUserDetails = (
     userId: string,
-    data: { name?: string; email?: string; password?: string; role?: UserRole }
+    data: { name?: string; email?: string; phone?: string; password?: string; role?: UserRole }
   ): boolean => {
     const updated = users.map((u) => {
       if (u.id !== userId) return u;
@@ -106,6 +113,7 @@ export const AdminAuthProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         ...u,
         ...(data.name?.trim() ? { name: data.name.trim() } : {}),
         ...(data.email?.trim() ? { email: data.email.trim().toLowerCase() } : {}),
+        ...(data.phone !== undefined ? { phone: data.phone.trim() } : {}),
         ...(data.password?.trim() ? { password: data.password.trim() } : {}),
         ...(data.role ? { role: data.role } : {})
       };
