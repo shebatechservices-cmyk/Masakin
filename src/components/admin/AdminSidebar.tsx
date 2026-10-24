@@ -3,28 +3,30 @@
 import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, ShoppingBag, Package, Tag, ArrowLeft, Barcode, ReceiptText, BookOpen, Settings } from 'lucide-react';
+import { LayoutDashboard, ShoppingBag, Package, ArrowLeft, Barcode, ReceiptText, BookOpen, Settings } from 'lucide-react';
 import { useAdminAuth } from '@/context/AdminAuthContext';
 
 export default function AdminSidebar() {
   const pathname = usePathname();
   const { user } = useAdminAuth();
 
-  const links = [
-    { href: '/admin', label: 'ড্যাশবোর্ড', icon: LayoutDashboard, exact: true },
-    { href: '/admin/pos', label: 'POS কাউন্টার ও বারকোড', icon: Barcode },
-    { href: '/admin/orders', label: 'অনলাইন অর্ডার সমূহ', icon: ShoppingBag },
-    { href: '/admin/products', label: 'প্রোডাক্ট ও ট্রেন্ডিং', icon: Package },
-    { href: '/admin/expenses', label: 'দোকানের খরচ (Expense)', icon: ReceiptText },
-    { href: '/admin/ledger', label: 'একাউন্ট-লেজার (হিসাব)', icon: BookOpen },
-    { href: '/admin/offers', label: 'শপ সেটিংস ও অফার', icon: Settings }
+  const allLinks = [
+    { href: '/admin', label: 'ড্যাশবোর্ড', icon: LayoutDashboard, exact: true, adminOnly: false },
+    { href: '/admin/pos', label: 'POS কাউন্টার ও বারকোড', icon: Barcode, adminOnly: false },
+    { href: '/admin/orders', label: 'অনলাইন অর্ডার সমূহ', icon: ShoppingBag, adminOnly: false },
+    { href: '/admin/products', label: 'প্রোডাক্ট ও ট্রেন্ডিং', icon: Package, adminOnly: false },
+    { href: '/admin/expenses', label: 'দোকানের খরচ (Expense)', icon: ReceiptText, adminOnly: true },
+    { href: '/admin/ledger', label: 'একাউন্ট-লেজার (হিসাব)', icon: BookOpen, adminOnly: true },
+    { href: '/admin/offers', label: 'শপ সেটিংস ও সিকিউরিটি', icon: Settings, adminOnly: true }
   ];
+
+  const links = allLinks.filter((link) => !link.adminOnly || user?.role === 'admin');
 
   return (
     <aside className="w-full md:w-60 bg-white border-r border-zinc-200 p-4 space-y-6 shrink-0">
       <div className="space-y-1">
         <span className="text-[10px] font-black tracking-wider text-zinc-400 uppercase px-3 block mb-2">
-          মেনু নেভিগেশন
+          {user?.role === 'admin' ? 'এডমিন নেভিগেশন' : 'স্টাফ নেভিগেশন'}
         </span>
 
         {links.map((link) => {

@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { ShoppingBag, Search, Menu, X, ShieldCheck } from 'lucide-react';
+import { ShoppingBag, Search, Menu, X } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
 import { useShopData } from '@/context/ShopDataContext';
 import AnnouncementBar from './AnnouncementBar';
@@ -77,18 +77,8 @@ export default function Header() {
             <Link href="/shop" className="text-[#e11d48] hover:text-[#be123c] font-black transition">সব পোশাক</Link>
           </nav>
 
-          {/* Actions (Cart, Admin Link & CTA) */}
+          {/* Actions (Cart & CTA) */}
           <div className="flex items-center gap-2.5">
-            {/* Admin portal small link */}
-            <Link
-              href="/admin"
-              className="hidden xl:flex items-center gap-1 text-[11px] font-bold text-zinc-600 hover:text-[#e11d48] px-2.5 py-1.5 rounded-lg border border-zinc-200 hover:border-rose-200"
-              title="শপ এডমিন ড্যাশবোর্ড"
-            >
-              <ShieldCheck className="w-3.5 h-3.5 text-[#e11d48]" />
-              <span>এডমিন</span>
-            </Link>
-
             {/* Cart Trigger */}
             <button
               onClick={openCart}
@@ -152,7 +142,6 @@ export default function Header() {
             <Link href="/shop?category=sharee" onClick={() => setMobileMenuOpen(false)} className="py-2 px-3 rounded-lg hover:bg-rose-50 hover:text-[#e11d48] transition">শাড়ি কালেকশন</Link>
             <Link href="/shop" onClick={() => setMobileMenuOpen(false)} className="py-2 px-3 rounded-lg bg-rose-50 text-[#e11d48] font-black transition">সব পোশাক দেখুন (Shop All)</Link>
             <div className="border-t border-zinc-100 pt-2 flex flex-col space-y-1.5 text-xs text-zinc-600">
-              <Link href="/admin" onClick={() => setMobileMenuOpen(false)} className="px-3 py-1.5 text-[#e11d48] font-bold">🔐 শপ এডমিন ও স্টাফ লগইন</Link>
               <Link href="/about" onClick={() => setMobileMenuOpen(false)} className="px-3 py-1.5 hover:text-[#e11d48]">আমাদের গল্প</Link>
               <Link href="/contact" onClick={() => setMobileMenuOpen(false)} className="px-3 py-1.5 hover:text-[#e11d48]">যোগাযোগ ও শোরুম</Link>
               <Link href="/policies" onClick={() => setMobileMenuOpen(false)} className="px-3 py-1.5 hover:text-[#e11d48]">রিটার্ন ও শিপিং পলিসি</Link>

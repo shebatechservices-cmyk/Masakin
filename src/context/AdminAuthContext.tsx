@@ -5,17 +5,33 @@ import { useRouter } from 'next/navigation';
 
 export type UserRole = 'admin' | 'staff' | null;
 
-interface AdminUser {
+export interface AdminUser {
   email: string;
   name: string;
   role: 'admin' | 'staff';
 }
+
+interface StoredCredentials {
+  adminEmail: string;
+  adminPass: string;
+  staffEmail: string;
+  staffPass: string;
+}
+
+const DEFAULT_CREDENTIALS: StoredCredentials = {
+  adminEmail: 'admin@masakin.com',
+  adminPass: 'admin123',
+  staffEmail: 'staff@masakin.com',
+  staffPass: 'staff123'
+};
 
 interface AdminAuthContextType {
   user: AdminUser | null;
   login: (email: string, pass: string) => boolean;
   logout: () => void;
   isAuthenticated: boolean;
+  updatePassword: (role: 'admin' | 'staff', newPass: string) => boolean;
+  canAccess: (pathname: string) => boolean;
 }
 
 const AdminAuthContext = createContext<AdminAuthContextType | undefined>(undefined);
@@ -23,31 +39,34 @@ const AdminAuthContext = createContext<AdminAuthContextType | undefined>(undefin
 export const AdminAuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const router = useRouter();
   const [user, setUser] = useState<AdminUser | null>(null);
-  const [mounted, setMounted] = useState(false);
+  const [creds, setCreds] = useState<StoredCredentials>(DEFAULT_CREDENTIALS);
 
   useEffect(() => {
-    setMounted(true);
     try {
-      const saved = localStorage.getItem('masakin_admin_user');
-      if (saved) {
-        setUser(JSON.parse(saved));
+      const savedUser = localStorage.getItem('masakin_admin_user');
+      if (savedUser) setUser(JSON.parse(savedUser));
+
+      const savedCreds = localStorage.getItem('masakin_auth_credentials');
+      if (savedCreds) {
+        setCreds({ ...DEFAULT_CREDENTIALS, ...JSON.parse(savedCreds) });
+      } else {
+        localStorage.setItem('masakin_auth_credentials', JSON.stringify(DEFAULT_CREDENTIALS));
       }
     } catch {}
   }, []);
 
   const login = (email: string, pass: string): boolean => {
     const cleanEmail = email.trim().toLowerCase();
-    
-    // Admin login
-    if (cleanEmail === 'admin@masakin.com' && pass === 'admin123') {
+    const cleanPass = pass.trim();
+
+    if (cleanEmail === creds.adminEmail.toLowerCase() && cleanPass === creds.adminPass) {
       const u: AdminUser = { email: cleanEmail, name: 'ম্যানেজার / এডমিন', role: 'admin' };
       setUser(u);
       try { localStorage.setItem('masakin_admin_user', JSON.stringify(u)); } catch {}
       return true;
     }
 
-    // Staff login
-    if (cleanEmail === 'staff@masakin.com' && pass === 'staff123') {
+    if (cleanEmail === creds.staffEmail.toLowerCase() && cleanPass === creds.staffPass) {
       const u: AdminUser = { email: cleanEmail, name: 'অর্ডার স্টাফ', role: 'staff' };
       setUser(u);
       try { localStorage.setItem('masakin_admin_user', JSON.stringify(u)); } catch {}
@@ -55,6 +74,29 @@ export const AdminAuthProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     }
 
     return false;
+  };
+
+  const updatePassword = (role: 'admin' | 'staff', newPass: string): boolean => {
+    if (!newPass || newPass.trim().length < 4) return false;
+
+    const updated = {
+      ...creds,
+      [role === 'admin' ? 'adminPass' : 'staffPass']: newPass.trim()
+    };
+    setCreds(updated);
+    try {
+      localStorage.setItem('masakin_auth_credentials', JSON.stringify(updated));
+    } catch {}
+    return true;
+  };
+
+  const canAccess = (pathname: string): boolean => {
+    if (!user) return false;
+    if (user.role === 'admin') return true;
+
+    // Staff restricted paths
+    const adminOnlyRoutes = ['/admin/expenses', '/admin/ledger', '/admin/offers'];
+    return !adminOnlyRoutes.some((route) => pathname.startsWith(route));
   };
 
   const logout = () => {
@@ -69,7 +111,9 @@ export const AdminAuthProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         user,
         login,
         logout,
-        isAuthenticated: !!user
+        isAuthenticated: !!user,
+        updatePassword,
+        canAccess
       }}
     >
       {children}

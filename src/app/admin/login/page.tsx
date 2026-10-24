@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Lock, Mail, ShieldCheck, ArrowRight, UserCheck } from 'lucide-react';
+import { Lock, Mail, ShieldCheck, ArrowRight, Eye, EyeOff, AlertTriangle } from 'lucide-react';
 import { useAdminAuth } from '@/context/AdminAuthContext';
 
 export default function AdminLoginPage() {
@@ -10,26 +10,44 @@ export default function AdminLoginPage() {
   const { login } = useAdminAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
+  const [failedAttempts, setFailedAttempts] = useState(0);
+  const [lockoutTimer, setLockoutTimer] = useState(0);
+
+  useEffect(() => {
+    if (lockoutTimer > 0) {
+      const interval = setInterval(() => {
+        setLockoutTimer((prev) => {
+          if (prev <= 1) {
+            setFailedAttempts(0);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+      return () => clearInterval(interval);
+    }
+  }, [lockoutTimer]);
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
+    if (lockoutTimer > 0) return;
+
     setError('');
     const success = login(email, password);
     if (success) {
+      setFailedAttempts(0);
       router.push('/admin');
     } else {
-      setError('ভুল ইমেইল বা পাসওয়ার্ড। অনুগ্রহ করে সঠিক তথ্য দিন।');
-    }
-  };
-
-  const handleFillDemo = (role: 'admin' | 'staff') => {
-    if (role === 'admin') {
-      setEmail('admin@masakin.com');
-      setPassword('admin123');
-    } else {
-      setEmail('staff@masakin.com');
-      setPassword('staff123');
+      const newAttempts = failedAttempts + 1;
+      setFailedAttempts(newAttempts);
+      if (newAttempts >= 5) {
+        setLockoutTimer(30);
+        setError('পরপর ৫ বার ভুল তথ্য দেওয়ায় লগইন ৩০ সেকেন্ডের জন্য লক করা হয়েছে।');
+      } else {
+        setError(`ভুল ইমেইল বা পাসওয়ার্ড। আর ${5 - newAttempts} বার চেষ্টা করা যাবে।`);
+      }
     }
   };
 
@@ -40,10 +58,10 @@ export default function AdminLoginPage() {
           <ShieldCheck className="w-6 h-6 text-rose-300" />
         </div>
         <h1 className="text-2xl font-black text-zinc-900 tracking-tight">
-          মাসাকিন এডমিন ও স্টাফ লগইন
+          মাসাকিন সিকিউর পোর্টাল
         </h1>
         <p className="text-xs text-zinc-500">
-          অর্ডার প্রসেসিং, প্রোডাক্ট আপডেট ও অফার ম্যানেজমেন্ট পোর্টাল
+          অনুমোদিত এডমিন ও স্টাফ এক্সেস কন্ট্রোল
         </p>
       </div>
 
@@ -55,10 +73,11 @@ export default function AdminLoginPage() {
             <input
               type="email"
               required
+              disabled={lockoutTimer > 0}
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="e.g. admin@masakin.com"
-              className="w-full pl-10 pr-4 py-2.5 bg-zinc-50 border border-zinc-200 rounded-xl text-xs focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#e11d48]"
+              className="w-full pl-10 pr-4 py-2.5 bg-zinc-50 border border-zinc-200 rounded-xl text-xs focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#e11d48] disabled:opacity-50"
             />
           </div>
         </div>
@@ -68,57 +87,51 @@ export default function AdminLoginPage() {
           <div className="relative">
             <Lock className="w-4 h-4 text-zinc-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
             <input
-              type="password"
+              type={showPassword ? 'text' : 'password'}
               required
+              disabled={lockoutTimer > 0}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="••••••••"
-              className="w-full pl-10 pr-4 py-2.5 bg-zinc-50 border border-zinc-200 rounded-xl text-xs focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#e11d48]"
+              className="w-full pl-10 pr-10 py-2.5 bg-zinc-50 border border-zinc-200 rounded-xl text-xs focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#e11d48] disabled:opacity-50"
             />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute right-3.5 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600 cursor-pointer"
+            >
+              {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+            </button>
           </div>
         </div>
 
-        {error && <p className="text-xs text-rose-600 font-bold">{error}</p>}
+        {error && (
+          <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl flex items-center gap-2 text-xs text-rose-700 font-bold">
+            <AlertTriangle className="w-4 h-4 shrink-0 text-rose-600" />
+            <span>{error}</span>
+          </div>
+        )}
 
         <button
           type="submit"
-          className="w-full py-3 bg-[#e11d48] hover:bg-[#be123c] text-white font-black text-xs sm:text-sm rounded-xl transition shadow-md flex items-center justify-center gap-2 cursor-pointer"
+          disabled={lockoutTimer > 0}
+          className="w-full py-3 bg-[#e11d48] hover:bg-[#be123c] disabled:bg-zinc-400 text-white font-black text-xs sm:text-sm rounded-xl transition shadow-md flex items-center justify-center gap-2 cursor-pointer"
         >
-          <span>লগইন করুন</span>
-          <ArrowRight className="w-4 h-4" />
+          {lockoutTimer > 0 ? (
+            <span>লক করা আছে ({lockoutTimer} সেকেন্ড)</span>
+          ) : (
+            <>
+              <span>নিরাপদ লগইন</span>
+              <ArrowRight className="w-4 h-4" />
+            </>
+          )}
         </button>
       </form>
 
-      {/* 1-Click Demo Buttons */}
-      <div className="pt-3 border-t border-zinc-100 space-y-2">
-        <span className="text-[11px] font-bold text-zinc-500 block text-center">
-          দ্রুত ডেমো লগইনের জন্য ক্লিক করুন:
-        </span>
-        <div className="grid grid-cols-2 gap-2">
-          <button
-            type="button"
-            onClick={() => handleFillDemo('admin')}
-            className="p-2 rounded-xl border border-rose-200 bg-rose-50/70 hover:bg-rose-100 text-left transition cursor-pointer"
-          >
-            <div className="flex items-center gap-1 text-[11px] font-bold text-[#e11d48]">
-              <ShieldCheck className="w-3.5 h-3.5" />
-              <span>এডমিন (মালিক)</span>
-            </div>
-            <span className="text-[9px] text-zinc-500 block font-mono">admin@masakin.com</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => handleFillDemo('staff')}
-            className="p-2 rounded-xl border border-zinc-200 bg-zinc-100 hover:bg-zinc-200 text-left transition cursor-pointer"
-          >
-            <div className="flex items-center gap-1 text-[11px] font-bold text-zinc-900">
-              <UserCheck className="w-3.5 h-3.5" />
-              <span>স্টাফ (অর্ডার টিম)</span>
-            </div>
-            <span className="text-[9px] text-zinc-500 block font-mono">staff@masakin.com</span>
-          </button>
-        </div>
+      <div className="pt-2 text-center">
+        <p className="text-[11px] text-zinc-400">
+          এই পোর্টালটি শুধুমাত্র মাসাকিন বস্ত্র বিতানের অনুমোদিত কর্মীদের জন্য সংরক্ষিত।
+        </p>
       </div>
     </div>
   );

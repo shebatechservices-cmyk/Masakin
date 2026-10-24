@@ -93,8 +93,8 @@ export default function FeaturedProducts() {
         {filteredProducts.length === 0 ? (
           <div className="text-center py-12 bg-zinc-50 rounded-3xl border border-dashed border-zinc-200">
             <p className="text-zinc-500 font-medium text-sm">এই ক্যাটাগরিতে বর্তমানে কোনো প্রোডাক্ট নেই।</p>
-            <Link href="/admin/products" className="inline-block mt-3 text-xs font-bold text-rose-600 hover:underline">
-              + অ্যাডমিন থেকে নতুন প্রোডাক্ট যুক্ত করুন
+            <Link href="/shop" className="inline-block mt-3 text-xs font-bold text-[#e11d48] hover:underline">
+              অন্যান্য সব পোশাক দেখুন →
             </Link>
           </div>
         ) : (

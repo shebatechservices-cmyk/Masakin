@@ -9,15 +9,19 @@ import AdminSidebar from '@/components/admin/AdminSidebar';
 function AdminLayoutContent({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { user, isAuthenticated } = useAdminAuth();
+  const { user, isAuthenticated, canAccess } = useAdminAuth();
   const isLoginPage = pathname === '/admin/login';
 
   useEffect(() => {
-    // If not logged in and not on login page, redirect to login
     if (!isAuthenticated && !isLoginPage) {
       router.push('/admin/login');
+      return;
     }
-  }, [isAuthenticated, isLoginPage, router]);
+
+    if (isAuthenticated && !isLoginPage && !canAccess(pathname)) {
+      router.push('/admin');
+    }
+  }, [isAuthenticated, isLoginPage, pathname, canAccess, router]);
 
   if (isLoginPage) {
     return (
@@ -27,7 +31,6 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
     );
   }
 
-  // If waiting for login redirect
   if (!isAuthenticated) {
     return (
       <div className="min-h-screen bg-stone-50 flex items-center justify-center">
