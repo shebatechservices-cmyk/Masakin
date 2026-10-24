@@ -2,106 +2,141 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { SystemUser, AuthContextType, UserRole, DEFAULT_USERS } from '@/types/auth';
 
-export type UserRole = 'admin' | 'staff' | null;
+export type { UserRole, SystemUser };
 
-export interface AdminUser {
-  email: string;
-  name: string;
-  role: 'admin' | 'staff';
-}
-
-interface StoredCredentials {
-  adminEmail: string;
-  adminPass: string;
-  staffEmail: string;
-  staffPass: string;
-}
-
-const DEFAULT_CREDENTIALS: StoredCredentials = {
-  adminEmail: 'admin@masakin.com',
-  adminPass: 'admin123',
-  staffEmail: 'staff@masakin.com',
-  staffPass: 'staff123'
-};
-
-interface AdminAuthContextType {
-  user: AdminUser | null;
-  login: (email: string, pass: string) => boolean;
-  logout: () => void;
-  isAuthenticated: boolean;
-  updatePassword: (role: 'admin' | 'staff', newPass: string) => boolean;
-  canAccess: (pathname: string) => boolean;
-}
-
-const AdminAuthContext = createContext<AdminAuthContextType | undefined>(undefined);
+const AdminAuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AdminAuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const router = useRouter();
-  const [user, setUser] = useState<AdminUser | null>(null);
-  const [creds, setCreds] = useState<StoredCredentials>(DEFAULT_CREDENTIALS);
+  const [user, setUser] = useState<SystemUser | null>(null);
+  const [users, setUsers] = useState<SystemUser[]>(DEFAULT_USERS);
 
   useEffect(() => {
     try {
       const savedUser = localStorage.getItem('masakin_admin_user');
       if (savedUser) setUser(JSON.parse(savedUser));
 
-      const savedCreds = localStorage.getItem('masakin_auth_credentials');
-      if (savedCreds) {
-        setCreds({ ...DEFAULT_CREDENTIALS, ...JSON.parse(savedCreds) });
+      const savedUsers = localStorage.getItem('masakin_system_users');
+      if (savedUsers) {
+        setUsers(JSON.parse(savedUsers));
       } else {
-        localStorage.setItem('masakin_auth_credentials', JSON.stringify(DEFAULT_CREDENTIALS));
+        localStorage.setItem('masakin_system_users', JSON.stringify(DEFAULT_USERS));
       }
     } catch {}
   }, []);
+
+  const saveUsersToStorage = (updatedUsers: SystemUser[]) => {
+    setUsers(updatedUsers);
+    try {
+      localStorage.setItem('masakin_system_users', JSON.stringify(updatedUsers));
+    } catch {}
+  };
 
   const login = (email: string, pass: string): boolean => {
     const cleanEmail = email.trim().toLowerCase();
     const cleanPass = pass.trim();
 
-    if (cleanEmail === creds.adminEmail.toLowerCase() && cleanPass === creds.adminPass) {
-      const u: AdminUser = { email: cleanEmail, name: 'ম্যানেজার / এডমিন', role: 'admin' };
-      setUser(u);
-      try { localStorage.setItem('masakin_admin_user', JSON.stringify(u)); } catch {}
+    const matched = users.find(
+      (u) => u.email.toLowerCase() === cleanEmail && u.password === cleanPass && u.status === 'active'
+    );
+
+    if (matched) {
+      setUser(matched);
+      try {
+        localStorage.setItem('masakin_admin_user', JSON.stringify(matched));
+      } catch {}
       return true;
     }
-
-    if (cleanEmail === creds.staffEmail.toLowerCase() && cleanPass === creds.staffPass) {
-      const u: AdminUser = { email: cleanEmail, name: 'অর্ডার স্টাফ', role: 'staff' };
-      setUser(u);
-      try { localStorage.setItem('masakin_admin_user', JSON.stringify(u)); } catch {}
-      return true;
-    }
-
     return false;
   };
 
-  const updatePassword = (role: 'admin' | 'staff', newPass: string): boolean => {
+  const createShopAdmin = (data: { name: string; email: string; password: string }) => {
+    const cleanEmail = data.email.trim().toLowerCase();
+    if (users.some((u) => u.email.toLowerCase() === cleanEmail)) {
+      return { success: false, message: 'এই ইমেইল দিয়ে ইতোমধ্যে একটি একাউন্ট রয়েছে।' };
+    }
+
+    const newAdmin: SystemUser = {
+      id: `admin-${Date.now()}`,
+      name: data.name.trim(),
+      email: cleanEmail,
+      password: data.password.trim(),
+      role: 'admin',
+      status: 'active',
+      createdAt: new Date().toISOString().split('T')[0],
+      createdBy: user?.email || 'super_admin'
+    };
+
+    const updated = [...users, newAdmin];
+    saveUsersToStorage(updated);
+    return { success: true, message: 'শপ এডমিন একাউন্ট সফলভাবে তৈরি হয়েছে!' };
+  };
+
+  const createStaffMember = (data: { name: string; email: string; password: string }) => {
+    const cleanEmail = data.email.trim().toLowerCase();
+    if (users.some((u) => u.email.toLowerCase() === cleanEmail)) {
+      return { success: false, message: 'এই ইমেইল দিয়ে ইতোমধ্যে একটি একাউন্ট রয়েছে।' };
+    }
+
+    const newStaff: SystemUser = {
+      id: `staff-${Date.now()}`,
+      name: data.name.trim(),
+      email: cleanEmail,
+      password: data.password.trim(),
+      role: 'staff',
+      status: 'active',
+      createdAt: new Date().toISOString().split('T')[0],
+      createdBy: user?.email || 'admin@masakin.com'
+    };
+
+    const updated = [...users, newStaff];
+    saveUsersToStorage(updated);
+    return { success: true, message: 'স্টাফ একাউন্ট সফলভাবে তৈরি হয়েছে!' };
+  };
+
+  const deleteUser = (userId: string): boolean => {
+    if (userId === 'usr-dev-01') return false;
+
+    const updated = users.filter((u) => u.id !== userId);
+    saveUsersToStorage(updated);
+
+    if (user?.id === userId) {
+      logout();
+    }
+    return true;
+  };
+
+  const updateUserPassword = (userId: string, newPass: string): boolean => {
     if (!newPass || newPass.trim().length < 4) return false;
 
-    const updated = {
-      ...creds,
-      [role === 'admin' ? 'adminPass' : 'staffPass']: newPass.trim()
-    };
-    setCreds(updated);
-    try {
-      localStorage.setItem('masakin_auth_credentials', JSON.stringify(updated));
-    } catch {}
+    const updated = users.map((u) => (u.id === userId ? { ...u, password: newPass.trim() } : u));
+    saveUsersToStorage(updated);
+
+    if (user?.id === userId) {
+      const updatedCurrentUser = { ...user, password: newPass.trim() };
+      setUser(updatedCurrentUser);
+      try {
+        localStorage.setItem('masakin_admin_user', JSON.stringify(updatedCurrentUser));
+      } catch {}
+    }
     return true;
   };
 
   const canAccess = (pathname: string): boolean => {
     if (!user) return false;
-    if (user.role === 'admin') return true;
+    if (user.role === 'super_admin' || user.role === 'admin') return true;
 
-    // Staff restricted paths
     const adminOnlyRoutes = ['/admin/expenses', '/admin/ledger', '/admin/offers'];
     return !adminOnlyRoutes.some((route) => pathname.startsWith(route));
   };
 
   const logout = () => {
     setUser(null);
-    try { localStorage.removeItem('masakin_admin_user'); } catch {}
+    try {
+      localStorage.removeItem('masakin_admin_user');
+    } catch {}
     router.push('/sd');
   };
 
@@ -109,10 +144,14 @@ export const AdminAuthProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     <AdminAuthContext.Provider
       value={{
         user,
+        users,
         login,
         logout,
         isAuthenticated: !!user,
-        updatePassword,
+        createShopAdmin,
+        createStaffMember,
+        deleteUser,
+        updateUserPassword,
         canAccess
       }}
     >
