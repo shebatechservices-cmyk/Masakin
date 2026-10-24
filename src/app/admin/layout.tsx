@@ -2,34 +2,25 @@
 
 import React, { useEffect } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
-import { AdminAuthProvider, useAdminAuth } from '@/context/AdminAuthContext';
+import { useAdminAuth } from '@/context/AdminAuthContext';
 import AdminHeader from '@/components/admin/AdminHeader';
 import AdminSidebar from '@/components/admin/AdminSidebar';
 
-function AdminLayoutContent({ children }: { children: React.ReactNode }) {
+export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { user, isAuthenticated, canAccess } = useAdminAuth();
-  const isLoginPage = pathname === '/admin/login';
+  const { isAuthenticated, canAccess } = useAdminAuth();
 
   useEffect(() => {
-    if (!isAuthenticated && !isLoginPage) {
-      router.push('/admin/login');
+    if (!isAuthenticated) {
+      router.push('/sd');
       return;
     }
 
-    if (isAuthenticated && !isLoginPage && !canAccess(pathname)) {
+    if (isAuthenticated && !canAccess(pathname)) {
       router.push('/admin');
     }
-  }, [isAuthenticated, isLoginPage, pathname, canAccess, router]);
-
-  if (isLoginPage) {
-    return (
-      <div className="min-h-screen bg-stone-100 flex items-center justify-center p-4">
-        {children}
-      </div>
-    );
-  }
+  }, [isAuthenticated, pathname, canAccess, router]);
 
   if (!isAuthenticated) {
     return (
@@ -49,13 +40,5 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
         </main>
       </div>
     </div>
-  );
-}
-
-export default function AdminLayout({ children }: { children: React.ReactNode }) {
-  return (
-    <AdminAuthProvider>
-      <AdminLayoutContent>{children}</AdminLayoutContent>
-    </AdminAuthProvider>
   );
 }

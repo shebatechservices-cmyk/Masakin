@@ -102,7 +102,7 @@ export const AdminAuthProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const logout = () => {
     setUser(null);
     try { localStorage.removeItem('masakin_admin_user'); } catch {}
-    router.push('/admin/login');
+    router.push('/sd');
   };
 
   return (

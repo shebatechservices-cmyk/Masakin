@@ -126,16 +126,9 @@ export default function Footer() {
 
         {/* Payment Methods and Copyright */}
         <div className="pt-8 border-t border-zinc-800 flex flex-col md:flex-row items-center justify-between gap-4">
-          <div className="flex flex-wrap items-center justify-center md:justify-start gap-2 text-xs text-zinc-500">
-            <span>© {new Date().getFullYear()} {settings.storeName}. সর্বস্বত্ব সংরক্ষিত।</span>
-            <Link
-              href="/admin/login"
-              className="text-zinc-600 hover:text-zinc-400 transition text-[11px]"
-              title="কর্মীদের অভ্যন্তরীণ পোর্টাল"
-            >
-              • স্টাফ পোর্টাল
-            </Link>
-          </div>
+          <p className="text-xs text-zinc-500 text-center md:text-left">
+            © {new Date().getFullYear()} {settings.storeName}. সর্বস্বত্ব সংরক্ষিত।
+          </p>
           
           {/* Payment Gateways / Logos */}
           <div className="flex flex-wrap items-center justify-center gap-2">
