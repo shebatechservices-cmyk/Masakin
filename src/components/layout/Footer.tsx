@@ -4,9 +4,12 @@ import React from 'react';
 import Link from 'next/link';
 import { Phone, MapPin, ShieldCheck, Truck, RotateCcw, HeartHandshake, Mail, Globe } from 'lucide-react';
 import { useShopData } from '@/context/ShopDataContext';
+import { usePageControl } from '@/context/PageControlContext';
 
 export default function Footer() {
   const { settings } = useShopData();
+  const { isPageEnabled } = usePageControl();
+
 
   return (
     <footer className="bg-[#09090b] text-zinc-300 pt-16 pb-24 md:pb-12 border-t border-zinc-800">
@@ -106,22 +109,32 @@ export default function Footer() {
           <div>
             <h3 className="text-white font-bold text-base mb-4">কোম্পানি</h3>
             <ul className="space-y-2.5 text-sm text-zinc-400">
-              <li><Link href="/about" className="hover:text-rose-400 transition">আমাদের গল্প</Link></li>
-              <li><Link href="/contact" className="hover:text-rose-400 transition">যোগাযোগ ও শোরুম</Link></li>
-              <li><Link href="/shop" className="hover:text-rose-400 transition">নতুন কালেকশন</Link></li>
-              <li><Link href="/account" className="hover:text-rose-400 transition">অর্ডার ট্র্যাকিং</Link></li>
+              {isPageEnabled('/about') && (
+                <li><Link href="/about" className="hover:text-rose-400 transition">আমাদের গল্প</Link></li>
+              )}
+              {isPageEnabled('/contact') && (
+                <li><Link href="/contact" className="hover:text-rose-400 transition">যোগাযোগ ও শোরুম</Link></li>
+              )}
+              {isPageEnabled('/shop') && (
+                <li><Link href="/shop" className="hover:text-rose-400 transition">নতুন কালেকশন</Link></li>
+              )}
+              {isPageEnabled('/account') && (
+                <li><Link href="/account" className="hover:text-rose-400 transition">অর্ডার ট্র্যাকিং</Link></li>
+              )}
             </ul>
           </div>
 
           {/* Customer Support & Policies */}
-          <div>
-            <h3 className="text-white font-bold text-base mb-4">সহায়তা ও পলিসি</h3>
-            <ul className="space-y-2.5 text-sm text-zinc-400">
-              <li><Link href="/policies" className="hover:text-rose-400 transition">রিটার্ন ও এক্সচেঞ্জ পলিসি</Link></li>
-              <li><Link href="/policies" className="hover:text-rose-400 transition">ডেলিভারি ও শিপিং পলিসি</Link></li>
-              <li><Link href="/policies" className="hover:text-rose-400 transition">প্রাইভেসি পলিসি</Link></li>
-            </ul>
-          </div>
+          {isPageEnabled('/policies') && (
+            <div>
+              <h3 className="text-white font-bold text-base mb-4">সহায়তা ও পলিসি</h3>
+              <ul className="space-y-2.5 text-sm text-zinc-400">
+                <li><Link href="/policies" className="hover:text-rose-400 transition">রিটার্ন ও এক্সচেঞ্জ পলিসি</Link></li>
+                <li><Link href="/policies" className="hover:text-rose-400 transition">ডেলিভারি ও শিপিং পলিসি</Link></li>
+                <li><Link href="/policies" className="hover:text-rose-400 transition">প্রাইভেসি পলিসি</Link></li>
+              </ul>
+            </div>
+          )}
         </div>
 
         {/* Payment Methods and Copyright */}

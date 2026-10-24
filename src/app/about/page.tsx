@@ -2,10 +2,13 @@ import React from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { ShieldCheck, Users, Award, Sparkles, ArrowRight } from 'lucide-react';
+import PageGuard from '@/components/common/PageGuard';
 
 export default function AboutPage() {
   return (
-    <div className="bg-slate-50 min-h-screen py-12 sm:py-16">
+    <PageGuard path="/about" pageTitle="আমাদের গল্প">
+      <div className="bg-slate-50 min-h-screen py-12 sm:py-16">
+
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
         
         {/* Hero */}
@@ -86,5 +89,6 @@ export default function AboutPage() {
 
       </div>
     </div>
+  </PageGuard>
   );
 }

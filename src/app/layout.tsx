@@ -3,6 +3,7 @@ import './globals.css';
 import { CartProvider } from '@/context/CartContext';
 import { ShopDataProvider } from '@/context/ShopDataContext';
 import { AdminAuthProvider } from '@/context/AdminAuthContext';
+import { PageControlProvider } from '@/context/PageControlContext';
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
 import MobileNav from '@/components/layout/MobileNav';
@@ -53,18 +54,20 @@ export default function RootLayout({
       <body className="min-h-screen flex flex-col font-['Hind_Siliguri',sans-serif] bg-white text-zinc-950 selection:bg-rose-100 selection:text-rose-900 pb-16 md:pb-0">
         <ShopDataProvider>
           <AdminAuthProvider>
-            <CartProvider>
-              <Header />
-              <CartDrawer />
-              <main className="flex-1">
-                {children}
-              </main>
-              <Footer />
-              <MobileNav />
-              <WhatsAppButton />
-              <MobileStickyOrderBar />
-              <DevShortcutListener />
-            </CartProvider>
+            <PageControlProvider>
+              <CartProvider>
+                <Header />
+                <CartDrawer />
+                <main className="flex-1">
+                  {children}
+                </main>
+                <Footer />
+                <MobileNav />
+                <WhatsAppButton />
+                <MobileStickyOrderBar />
+                <DevShortcutListener />
+              </CartProvider>
+            </PageControlProvider>
           </AdminAuthProvider>
         </ShopDataProvider>
       </body>

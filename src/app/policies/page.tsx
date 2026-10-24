@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { RotateCcw, Truck, HelpCircle, Shield } from 'lucide-react';
 import FaqAccordion from '@/components/policies/FaqAccordion';
+import PageGuard from '@/components/common/PageGuard';
 
 type Tab = 'returns' | 'shipping' | 'faq' | 'privacy';
 
@@ -10,7 +11,9 @@ export default function PoliciesPage() {
   const [activeTab, setActiveTab] = useState<Tab>('returns');
 
   return (
-    <div className="bg-slate-50 min-h-screen py-12 sm:py-16">
+    <PageGuard path="/policies" pageTitle="সহায়তা ও পলিসি">
+      <div className="bg-slate-50 min-h-screen py-12 sm:py-16">
+
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         
         {/* Header */}
@@ -141,8 +144,8 @@ export default function PoliciesPage() {
             </div>
           )}
         </div>
-
       </div>
     </div>
-  );
+  </PageGuard>
+);
 }

@@ -52,49 +52,37 @@ export const AdminAuthProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     return false;
   };
 
-  const createShopAdmin = (data: { name: string; email: string; password: string }) => {
+  const createUser = (
+    data: { name: string; email: string; password: string },
+    role: 'admin' | 'staff'
+  ) => {
     const cleanEmail = data.email.trim().toLowerCase();
     if (users.some((u) => u.email.toLowerCase() === cleanEmail)) {
       return { success: false, message: 'এই ইমেইল দিয়ে ইতোমধ্যে একটি একাউন্ট রয়েছে।' };
     }
-
-    const newAdmin: SystemUser = {
-      id: `admin-${Date.now()}`,
+    const newUser: SystemUser = {
+      id: `${role}-${Date.now()}`,
       name: data.name.trim(),
       email: cleanEmail,
       password: data.password.trim(),
-      role: 'admin',
+      role,
       status: 'active',
       createdAt: new Date().toISOString().split('T')[0],
-      createdBy: user?.email || 'super_admin'
+      createdBy: user?.email || (role === 'admin' ? 'super_admin' : 'admin@masakin.com')
     };
-
-    const updated = [...users, newAdmin];
-    saveUsersToStorage(updated);
-    return { success: true, message: 'শপ এডমিন একাউন্ট সফলভাবে তৈরি হয়েছে!' };
+    saveUsersToStorage([...users, newUser]);
+    return {
+      success: true,
+      message: `${role === 'admin' ? 'শপ এডমিন' : 'স্টাফ'} একাউন্ট সফলভাবে তৈরি হয়েছে!`
+    };
   };
 
-  const createStaffMember = (data: { name: string; email: string; password: string }) => {
-    const cleanEmail = data.email.trim().toLowerCase();
-    if (users.some((u) => u.email.toLowerCase() === cleanEmail)) {
-      return { success: false, message: 'এই ইমেইল দিয়ে ইতোমধ্যে একটি একাউন্ট রয়েছে।' };
-    }
+  const createShopAdmin = (data: { name: string; email: string; password: string }) =>
+    createUser(data, 'admin');
 
-    const newStaff: SystemUser = {
-      id: `staff-${Date.now()}`,
-      name: data.name.trim(),
-      email: cleanEmail,
-      password: data.password.trim(),
-      role: 'staff',
-      status: 'active',
-      createdAt: new Date().toISOString().split('T')[0],
-      createdBy: user?.email || 'admin@masakin.com'
-    };
+  const createStaffMember = (data: { name: string; email: string; password: string }) =>
+    createUser(data, 'staff');
 
-    const updated = [...users, newStaff];
-    saveUsersToStorage(updated);
-    return { success: true, message: 'স্টাফ একাউন্ট সফলভাবে তৈরি হয়েছে!' };
-  };
 
   const deleteUser = (userId: string): boolean => {
     if (userId === 'usr-dev-01') return false;
@@ -108,20 +96,45 @@ export const AdminAuthProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     return true;
   };
 
-  const updateUserPassword = (userId: string, newPass: string): boolean => {
-    if (!newPass || newPass.trim().length < 4) return false;
-
-    const updated = users.map((u) => (u.id === userId ? { ...u, password: newPass.trim() } : u));
+  const updateUserDetails = (
+    userId: string,
+    data: { name?: string; email?: string; password?: string; role?: UserRole }
+  ): boolean => {
+    const updated = users.map((u) => {
+      if (u.id !== userId) return u;
+      return {
+        ...u,
+        ...(data.name?.trim() ? { name: data.name.trim() } : {}),
+        ...(data.email?.trim() ? { email: data.email.trim().toLowerCase() } : {}),
+        ...(data.password?.trim() ? { password: data.password.trim() } : {}),
+        ...(data.role ? { role: data.role } : {})
+      };
+    });
     saveUsersToStorage(updated);
-
     if (user?.id === userId) {
-      const updatedCurrentUser = { ...user, password: newPass.trim() };
-      setUser(updatedCurrentUser);
-      try {
-        localStorage.setItem('masakin_admin_user', JSON.stringify(updatedCurrentUser));
-      } catch {}
+      const activeUpdated = updated.find((u) => u.id === userId) || null;
+      setUser(activeUpdated);
+      try { localStorage.setItem('masakin_admin_user', JSON.stringify(activeUpdated)); } catch {}
     }
     return true;
+  };
+
+  const updateUserPassword = (userId: string, newPass: string): boolean => {
+    if (!newPass || newPass.trim().length < 4) return false;
+    return updateUserDetails(userId, { password: newPass });
+  };
+
+  const resetUsersToDefault = () => {
+    saveUsersToStorage(DEFAULT_USERS);
+    setUser(DEFAULT_USERS[0]);
+    try { localStorage.setItem('masakin_admin_user', JSON.stringify(DEFAULT_USERS[0])); } catch {}
+  };
+
+  const resetAllStoreData = () => {
+    ['msk_orders', 'msk_expenses', 'msk_ledger', 'msk_products', 'msk_settings', 'msk_coupons'].forEach((k) => {
+      try { localStorage.removeItem(k); } catch {}
+    });
+    resetUsersToDefault();
   };
 
   const canAccess = (pathname: string): boolean => {
@@ -152,6 +165,9 @@ export const AdminAuthProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         createStaffMember,
         deleteUser,
         updateUserPassword,
+        updateUserDetails,
+        resetUsersToDefault,
+        resetAllStoreData,
         canAccess
       }}
     >

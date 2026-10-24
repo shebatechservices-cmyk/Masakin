@@ -52,5 +52,9 @@ export interface AuthContextType {
   createStaffMember: (data: { name: string; email: string; password: string }) => { success: boolean; message: string };
   deleteUser: (userId: string) => boolean;
   updateUserPassword: (userId: string, newPass: string) => boolean;
+  updateUserDetails: (userId: string, data: { name?: string; email?: string; password?: string; role?: UserRole }) => boolean;
+  resetUsersToDefault: () => void;
+  resetAllStoreData: () => void;
   canAccess: (pathname: string) => boolean;
 }
+
