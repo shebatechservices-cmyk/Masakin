@@ -17,15 +17,19 @@ export const AdminAuthProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     try {
       const savedUser = localStorage.getItem('masakin_admin_user');
       if (savedUser) setUser(JSON.parse(savedUser));
-
       const savedUsers = localStorage.getItem('masakin_system_users');
-      if (savedUsers) {
-        setUsers(JSON.parse(savedUsers));
-      } else {
-        localStorage.setItem('masakin_system_users', JSON.stringify(DEFAULT_USERS));
-      }
+      if (savedUsers) setUsers(JSON.parse(savedUsers));
+      else localStorage.setItem('masakin_system_users', JSON.stringify(DEFAULT_USERS));
     } catch {}
   }, []);
+
+  const getLatestUsers = (): SystemUser[] => {
+    try {
+      const saved = localStorage.getItem('masakin_system_users');
+      if (saved) return JSON.parse(saved);
+    } catch {}
+    return users;
+  };
 
   const saveUsersToStorage = (updatedUsers: SystemUser[]) => {
     setUsers(updatedUsers);
@@ -35,8 +39,9 @@ export const AdminAuthProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const login = (identifier: string, pass: string): boolean => {
     const cleanId = identifier.trim().toLowerCase();
     const cleanPass = pass.trim();
+    const latestUsers = getLatestUsers();
 
-    const matched = users.find((u) => {
+    const matched = latestUsers.find((u) => {
       const emailMatch = u.email.toLowerCase() === cleanId;
       const cleanDigits = cleanId.replace(/[^0-9]/g, '');
       const phoneMatch = !!(u.phone && cleanDigits && u.phone.replace(/[^0-9]/g, '') === cleanDigits);
@@ -45,9 +50,7 @@ export const AdminAuthProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
     if (matched) {
       setUser(matched);
-      try {
-        localStorage.setItem('masakin_admin_user', JSON.stringify(matched));
-      } catch {}
+      try { localStorage.setItem('masakin_admin_user', JSON.stringify(matched)); } catch {}
       return true;
     }
     return false;
@@ -59,11 +62,12 @@ export const AdminAuthProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   ) => {
     const cleanEmail = data.email.trim().toLowerCase();
     const cleanPhone = data.phone?.trim() || '';
+    const latestUsers = getLatestUsers();
 
-    if (users.some((u) => u.email.toLowerCase() === cleanEmail)) {
+    if (latestUsers.some((u) => u.email.toLowerCase() === cleanEmail)) {
       return { success: false, message: 'এই ইমেইল দিয়ে ইতোমধ্যে একটি একাউন্ট রয়েছে।' };
     }
-    if (cleanPhone && users.some((u) => u.phone && u.phone.trim() === cleanPhone)) {
+    if (cleanPhone && latestUsers.some((u) => u.phone && u.phone.trim() === cleanPhone)) {
       return { success: false, message: 'এই ফোন নম্বর দিয়ে ইতোমধ্যে একটি একাউন্ট রয়েছে।' };
     }
 
@@ -78,7 +82,7 @@ export const AdminAuthProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       createdAt: new Date().toISOString().split('T')[0],
       createdBy: user?.email || (role === 'admin' ? 'super_admin' : 'admin@masakin.com')
     };
-    saveUsersToStorage([...users, newUser]);
+    saveUsersToStorage([...latestUsers, newUser]);
     return {
       success: true,
       message: `${role === 'admin' ? 'শপ এডমিন' : 'স্টাফ'} একাউন্ট সফলভাবে তৈরি হয়েছে!`
@@ -93,13 +97,10 @@ export const AdminAuthProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
   const deleteUser = (userId: string): boolean => {
     if (userId === 'usr-dev-01') return false;
-
-    const updated = users.filter((u) => u.id !== userId);
+    const latestUsers = getLatestUsers();
+    const updated = latestUsers.filter((u) => u.id !== userId);
     saveUsersToStorage(updated);
-
-    if (user?.id === userId) {
-      logout();
-    }
+    if (user?.id === userId) logout();
     return true;
   };
 
@@ -107,7 +108,8 @@ export const AdminAuthProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     userId: string,
     data: { name?: string; email?: string; phone?: string; password?: string; role?: UserRole }
   ): boolean => {
-    const updated = users.map((u) => {
+    const latestUsers = getLatestUsers();
+    const updated = latestUsers.map((u) => {
       if (u.id !== userId) return u;
       return {
         ...u,
