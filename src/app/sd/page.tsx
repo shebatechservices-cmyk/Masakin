@@ -22,6 +22,15 @@ export default function SecretLoginPage() {
   }, [isAuthenticated, router]);
 
   useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('reason') === 'inactivity') {
+        setError('৫ মিনিট কোনো কার্যক্রম না থাকায় নিরাপত্তার স্বার্থে আপনাকে স্বয়ংক্রিয়ভাবে লগআউট করা হয়েছে।');
+      }
+    }
+  }, []);
+
+  useEffect(() => {
     if (lockoutTimer > 0) {
       const interval = setInterval(() => {
         setLockoutTimer((prev) => {

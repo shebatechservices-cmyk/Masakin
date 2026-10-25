@@ -11,6 +11,7 @@ import WhatsAppButton from '@/components/layout/WhatsAppButton';
 import CartDrawer from '@/components/cart/CartDrawer';
 import MobileStickyOrderBar from '@/components/layout/MobileStickyOrderBar';
 import DevShortcutListener from '@/components/dev/DevShortcutListener';
+import InactivityLogoutListener from '@/components/admin/InactivityLogoutListener';
 
 export const metadata: Metadata = {
   title: 'মাসাকিন বস্ত্র বিতান (MASAKIN Bastrabitan) — প্রিমিয়াম রেডিমেড পোশাক',
@@ -66,6 +67,7 @@ export default function RootLayout({
                 <WhatsAppButton />
                 <MobileStickyOrderBar />
                 <DevShortcutListener />
+                <InactivityLogoutListener />
               </CartProvider>
             </PageControlProvider>
           </AdminAuthProvider>
